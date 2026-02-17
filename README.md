@@ -1,226 +1,206 @@
-# 🎮 Bot Discord Gaming Communautaire — V2
+# 🎮 Kebab Bot — Bot Discord Gaming Communautaire
 
-Bot Discord complet orienté communauté gaming. Slash commands, SQLite, anti-raid robuste, musique stable, jeux gratuits multi-sources, Instagram auto-post, et bien plus.
-
----
-
-## 🚀 Installation rapide
-
-### 1. Prérequis
-- **Node.js v18+** → https://nodejs.org
-- **FFmpeg** → https://ffmpeg.org/download.html *(requis pour la musique)*
-
-### 2. Créer le bot Discord
-1. https://discord.com/developers/applications → **New Application**
-2. Onglet **Bot** → **Add Bot** → copie le **Token**
-3. Onglet **OAuth2 > URL Generator** :
-   - Scopes : `bot` + `applications.commands`
-   - Permissions : `Administrator` (ou permissions détaillées)
-4. Utilise l'URL générée pour inviter le bot
-
-### 3. Configurer le .env
-```bash
-cp .env.example .env
-# Ouvre .env et remplis toutes les variables
-```
-
-### 4. Installer et lancer
-```bash
-npm install
-npm run deploy    # Déploie les slash commands (à faire 1 seule fois)
-npm start         # Lance le bot
-```
+Un bot Discord complet et moderne pour serveurs gaming, développé avec Discord.js v14.
 
 ---
 
-## ⚙️ Variables .env importantes
-
-| Variable | Description | Requis |
-|----------|-------------|--------|
-| `DISCORD_TOKEN` | Token du bot | ✅ |
-| `CLIENT_ID` | ID de l'application | ✅ |
-| `GUILD_ID` | ID de ton serveur | ✅ |
-| `WELCOME_CHANNEL_ID` | Salon de bienvenue | ✅ |
-| `LOG_CHANNEL_ID` | Logs de modération | ✅ |
-| `MEMBER_ROLE_ID` | Rôle donné après vérification | ✅ |
-| `WEATHER_API_KEY` | OpenWeatherMap (gratuit) | Pour `/meteo` |
-| `TWITCH_CLIENT_ID` + `SECRET` | Dev Twitch (gratuit) | Pour Twitch |
-| `TWITCH_USERNAME` | Streamer à surveiller | Pour Twitch |
-| `INSTAGRAM_USERNAME` | Compte Instagram | Pour Instagram |
-| `ANTIRAID_THRESHOLD` | Joins/30s avant alerte (défaut: 7) | 🔒 |
-| `ANTIRAID_ACTION` | `alert` / `kick` / `ban` (défaut: alert) | 🔒 |
-
----
-
-## 📋 Toutes les commandes
+## ✨ Fonctionnalités
 
 ### 🛡️ Modération
 | Commande | Description |
 |----------|-------------|
-| `/ban` | Bannir (avec DM + log) |
-| `/kick` | Expulser |
-| `/mute` | Timeout temporaire (10m, 1h, 2d...) |
-| `/unmute` | Retirer le mute |
-| `/unban` | Débannir par ID |
-| `/warn ajouter` | Ajouter un warn (auto-mute à 3, auto-kick à 5) |
-| `/warn liste` | Voir les warns |
-| `/warn supprimer` | Supprimer un warn |
-| `/warn effacer` | Effacer tous les warns |
-| `/purge` | Supprimer 1-100 messages (filtrable par membre) |
-| `/slowmode` | Mode lent (0 = désactiver) |
-| `/lockdown` | Verrouiller/Déverrouiller un salon |
+| `/ban` | Bannir un membre |
+| `/kick` | Expulser un membre |
+| `/mute` | Mettre en sourdine (durée configurable) |
+| `/unmute` | Retirer la sourdine |
+| `/unban` | Débannir un membre |
+| `/warn` | Gérer les avertissements |
+| `/purge` | Supprimer des messages en masse |
+| `/slowmode` | Configurer le mode lent |
+| `/lockdown` | Verrouiller/déverrouiller un salon |
 
-### 📊 XP / Niveaux
+### 🔒 Sécurité Automatique
+- **Anti-raid** — Détection automatique, 3 modes : alerte/kick/ban
+- **Anti-spam** — Mute automatique après 5 messages en 5 secondes
+- **Captcha DM** — Vérification automatique des nouveaux membres
+
+### 📊 XP & Niveaux
 | Commande | Description |
 |----------|-------------|
-| `/rank` | Voir son niveau, XP, rang et barre de progression |
-| `/leaderboard` | Classement du serveur |
-| `/setxp` | Définir XP/niveau d'un membre (Admin) |
+| `/rank` | Voir son niveau et sa barre de progression |
+| `/leaderboard` | Classement XP du serveur |
+| `/setxp` | Définir l'XP d'un membre (Admin) |
 
-XP gagné : 15-25 par message, cooldown 1 minute. Level-up annoncé dans le salon.
-
-### 🎵 Musique (YouTube)
+### 💰 Économie
 | Commande | Description |
 |----------|-------------|
-| `/play` | Jouer depuis YouTube (titre ou lien) |
-| `/skip` | Passer la piste |
-| `/stop` | Arrêter et vider la file |
+| `/daily` | Bonus quotidien (500 🪙 + streak bonus) |
+| `/solde` | Voir son portefeuille et sa banque |
+| `/banque` | Déposer/retirer des coins en banque |
+| `/payer` | Envoyer des coins à un membre |
+| `/richesse` | Classement des membres les plus riches |
+| `/slots` | Machine à sous 🎰 |
+| `/blackjack` | Jouer au blackjack 🃏 |
+
+> 💡 Les membres gagnent automatiquement des coins en chattant !
+
+### 🎵 Musique
+| Commande | Description |
+|----------|-------------|
+| `/play` | Jouer une musique depuis YouTube |
+| `/skip` | Passer à la musique suivante |
+| `/stop` | Arrêter la musique |
+| `/pause` | Mettre en pause / reprendre |
 | `/queue` | Voir la file d'attente |
-| `/pause` | Pause / Reprendre |
 | `/volume` | Régler le volume (0-150%) |
 
 ### 🎉 Giveaway
 | Commande | Description |
 |----------|-------------|
-| `/giveaway créer` | Créer un giveaway avec bouton de participation |
+| `/giveaway créer` | Créer un giveaway |
 | `/giveaway terminer` | Terminer manuellement |
-| `/giveaway reroll` | Re-tirer un gagnant |
+| `/giveaway reroll` | Relancer le tirage |
+
+### 🎮 Rôles de Jeux
+| Commande | Description |
+|----------|-------------|
+| `/jeux choisir` | Choisir ses jeux via menu déroulant |
+| `/jeux rang` | Choisir son rang dans un jeu |
+| `/panel` | Poster le panel de sélection (Admin) |
+
+**Jeux supportés :** Rocket League, CS2, Valorant, League of Legends, Fortnite, Minecraft
+
+### 🎟️ Tickets
+| Commande | Description |
+|----------|-------------|
+| `/ticket panel` | Poster le panel de tickets (Admin) |
+| `/ticket fermer` | Fermer un ticket |
+| `/ticket ajouter` | Ajouter un membre au ticket |
+| `/ticket supprimer` | Retirer un membre du ticket |
+
+### 👤 Profil Gaming
+| Commande | Description |
+|----------|-------------|
+| `/profil voir` | Voir son profil ou celui d'un membre |
+| `/profil bio` | Modifier sa bio |
+| `/profil pseudo` | Ajouter son pseudo dans un jeu |
+| `/profil banniere` | Changer la couleur de son profil |
+
+### 📅 Anniversaires
+| Commande | Description |
+|----------|-------------|
+| `/anniversaire définir` | Enregistrer son anniversaire |
+| `/anniversaire voir` | Voir l'anniversaire d'un membre |
+| `/anniversaire prochain` | Voir les prochains anniversaires |
 
 ### 🎮 Mini-jeux
 | Commande | Description |
 |----------|-------------|
 | `/coinflip` | Pile ou face |
 | `/rps` | Pierre Feuille Ciseaux |
-| `/dice` | Lancer des dés (1-10 dés, 2-1000 faces) |
-| `/trivia` | QCM : Gaming, Général, Science, Sports |
-| `/8ball` | La boule magique |
+| `/dice` | Lancer des dés |
+| `/trivia` | Quiz interactif |
+| `/8ball` | Boule magique |
 
-### 🎭 Rôles de jeux
+### 📊 Statistiques Serveur
 | Commande | Description |
 |----------|-------------|
-| `/jeux choisir` | Menu pour choisir ses jeux (RL, CS2, Valorant, LoL, Fortnite, Minecraft) |
-| `/jeux rang` | Sélectionner son rang dans un jeu |
+| `/stats créer` | Créer les salons de statistiques auto |
+| `/stats supprimer` | Supprimer les salons de statistiques |
 
-Jeux configurés : Rocket League, CS2, Valorant, League of Legends, Fortnite, Minecraft.
+### 🔔 Systèmes Automatiques
+| Système | Description |
+|---------|-------------|
+| 📺 Twitch | Alertes live automatiques |
+| 🆓 Jeux Gratuits | Posts auto (Epic, Steam, Humble, FreeToGame) |
+| 📸 Instagram | Auto-post nouvelles publications |
+| 🎂 Anniversaires | Souhaits automatiques à 9h |
+| 🎉 Giveaways | Fin et tirage automatiques |
 
-### 🌐 Social & Utilitaire
+### 🌍 Utilitaires
 | Commande | Description |
 |----------|-------------|
-| `/meteo` | Météo complète d'une ville |
+| `/meteo` | Météo en temps réel |
+| `/serverinfo` | Informations sur le serveur |
+| `/userinfo` | Informations sur un membre |
+| `/reglement` | Poster le règlement |
 | `/twitch` | Vérifier si un streamer est en live |
-| `/freegames` | Jeux gratuits du moment (Epic + Free-to-Play) |
-| `/anniversaire définir` | Enregistrer son anniversaire |
-| `/anniversaire voir` | Voir l'anniversaire d'un membre |
-| `/anniversaire prochain` | Les 5 prochains anniversaires |
-| `/reglement` | Poster le message de règlement (Admin) |
-| `/serverinfo` | Infos complètes du serveur |
-| `/userinfo` | Infos sur un membre |
+| `/freegames` | Voir les jeux gratuits du moment |
 
 ---
 
-## 🔒 Sécurité automatique
+## 🚀 Installation
 
-### Captcha
-- Envoyé en DM à chaque nouveau membre
-- Code de 6 caractères, 3 tentatives, expiration 10 min
-- Kick automatique si échec ou expiration
+### Prérequis
+- Node.js v18+
+- FFmpeg
+- yt-dlp
+- VPS recommandé (OVH, DigitalOcean)
 
-### Anti-spam
-- Détection : 5+ messages en 5 secondes
-- Action : mute automatique 5 minutes + log
+### Installation
 
-### Anti-raid
-- Détection : `ANTIRAID_THRESHOLD` joins en 30 secondes (défaut: 7)
-- Actions configurables : `alert` / `kick` / `ban`
-- Mode raid désactivé automatiquement après 2 minutes
-- Log dans le salon de logs avec alerte @here
+```bash
+git clone https://github.com/DealerDeKebab/GamingBot.git
+cd GamingBot
+npm install
+```
 
----
+### Configuration
 
-## 🎂 Anniversaires automatiques
-Vérification chaque matin à **9h00**. Message avec mention dans le salon configuré.
+```bash
+cp .env.example .env
+nano .env
+```
 
-## 🆓 Jeux gratuits automatiques
-Vérification toutes les **heures**. Sources : Epic Games Store, FreeToGame, Steam RSS, Humble RSS.
-Chaque jeu n'est posté qu'une seule fois (base de données).
+### Démarrage
 
-## 📸 Instagram automatique
-Vérification toutes les **15 minutes** via RSS (RSSHub).
-Poste automatiquement chaque nouvelle publication du compte configuré.
+```bash
+node deploy-commands.js
+npm start
 
-## 📺 Alertes Twitch automatiques
-Vérification toutes les **5 minutes**.
-Notification @here quand le streamer passe en live.
+# En production
+pm2 start index.js --name "GamingBot"
+pm2 save && pm2 startup
+```
 
 ---
 
 ## 📁 Structure du projet
 
 ```
-discord-bot-v2/
-├── index.js                    Point d'entrée + tâches cron
-├── deploy-commands.js          Déploiement des slash commands
-├── .env.example                Modèle de configuration
+GamingBot/
 ├── commands/
-│   ├── moderation/             ban, kick, mute, unmute, unban, warn, purge, slowmode, lockdown
-│   ├── leveling/               rank, leaderboard, setxp
-│   ├── music/                  play, skip, stop, pause, queue, volume
-│   ├── giveaway/               giveaway (créer, terminer, reroll)
-│   ├── games/                  coinflip, rps, dice, trivia, 8ball
-│   ├── roles/                  jeux (sélection + rangs)
-│   ├── social/                 freegames, twitch
-│   ├── security/               slowmode, lockdown
-│   └── utility/                reglement, anniversaire, meteo, serverinfo, userinfo
-├── events/
-│   ├── interactionCreate.js    Slash commands + boutons + menus
-│   ├── guildMemberAdd.js       Anti-raid + captcha DM
-│   └── messageCreate.js        Anti-spam + XP + captcha réponse
-├── handlers/
-│   ├── commandHandler.js       Chargement auto des commandes
-│   └── eventHandler.js         Chargement auto des événements
+│   ├── economy/      # Économie complète
+│   ├── games/        # Mini-jeux
+│   ├── giveaway/     # Giveaways
+│   ├── leveling/     # XP et niveaux
+│   ├── moderation/   # Modération
+│   ├── music/        # Musique YouTube
+│   ├── roles/        # Rôles de jeux
+│   ├── security/     # Sécurité
+│   ├── social/       # Twitch, jeux gratuits
+│   └── utility/      # Utilitaires
 ├── database/
-│   └── database.js             SQLite — toutes les tables et fonctions
-└── utils/
-    ├── buttonHandler.js        Règlement, giveaway, RPS, trivia
-    ├── selectMenuHandler.js    Sélection jeux et rangs
-    ├── birthdayChecker.js      Annonces anniversaires (cron 9h)
-    ├── giveawayChecker.js      Fin des giveaways (cron 30s)
-    ├── twitchChecker.js        Alertes live (cron 5min)
-    ├── freeGamesChecker.js     Jeux gratuits multi-sources (cron 1h)
-    └── instagramChecker.js     Auto-post Instagram (cron 15min)
+│   └── database.js
+├── events/
+├── handlers/
+├── utils/
+├── index.js
+├── deploy-commands.js
+└── .env
 ```
 
 ---
 
-## 💡 APIs gratuites
+## 🛠️ Technologies
 
-| Service | URL | Limite |
-|---------|-----|--------|
-| OpenWeatherMap | https://openweathermap.org/api | 60 appels/min |
-| Twitch Dev | https://dev.twitch.tv/console | Gratuit |
+- **Discord.js** v14
+- **Better-SQLite3**
+- **yt-dlp** — Streaming YouTube
+- **@discordjs/voice**
+- **node-cron**
+- **axios** + **rss-parser**
 
 ---
 
-## 🐛 Résolution de problèmes
-
-**"Cannot find module '@discordjs/opus'"**
-→ `npm install @discordjs/opus` ou `npm install opusscript`
-
-**Musique ne fonctionne pas**
-→ Installe FFmpeg et ajoute-le au PATH système
-
-**Commandes slash n'apparaissent pas**
-→ Lance `npm run deploy` et attends 1-2 minutes
-
-**Instagram ne poste pas**
-→ Vérifie que RSSHub est accessible ou configure `INSTAGRAM_RSS_URL` avec une autre source RSS
+*Bot développé par DealerDeKebab*
