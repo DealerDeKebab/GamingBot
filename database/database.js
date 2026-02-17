@@ -45,6 +45,12 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS posted_instagram (
       post_id TEXT PRIMARY KEY, posted_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS economy (
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      wallet INTEGER DEFAULT 0, bank INTEGER DEFAULT 0,
+      last_daily INTEGER DEFAULT 0, streak INTEGER DEFAULT 0,
+      PRIMARY KEY (user_id, guild_id)
+    );
     CREATE TABLE IF NOT EXISTS profiles (
       user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       bio TEXT DEFAULT 'Aucune bio pour le moment... 🎮',
@@ -140,6 +146,19 @@ const postedInstagram = {
     db.prepare('INSERT OR IGNORE INTO posted_instagram(post_id,posted_at) VALUES(?,?)').run(postId, Date.now()),
 };
 
+const economy = {
+  get:         (uid, gid) => db.prepare('SELECT * FROM economy WHERE user_id=? AND guild_id=?').get(uid, gid),
+  create:      (uid, gid) => db.prepare('INSERT OR IGNORE INTO economy(user_id,guild_id) VALUES(?,?)').run(uid, gid),
+  addWallet:   (uid, gid, amount) => db.prepare('UPDATE economy SET wallet=wallet+? WHERE user_id=? AND guild_id=?').run(amount, uid, gid),
+  addBank:     (uid, gid, amount) => db.prepare('UPDATE economy SET bank=bank+? WHERE user_id=? AND guild_id=?').run(amount, uid, gid),
+  transfer:    (uid, gid, amount, dir) => {
+    if (dir === 'wallet_to_bank') { db.prepare('UPDATE economy SET wallet=wallet-?, bank=bank+? WHERE user_id=? AND guild_id=?').run(amount, amount, uid, gid); }
+    else { db.prepare('UPDATE economy SET bank=bank-?, wallet=wallet+? WHERE user_id=? AND guild_id=?').run(amount, amount, uid, gid); }
+  },
+  setDaily:    (uid, gid, time, streak) => db.prepare('UPDATE economy SET last_daily=?, streak=? WHERE user_id=? AND guild_id=?').run(time, streak, uid, gid),
+  leaderboard: (gid, limit=10) => db.prepare('SELECT * FROM economy WHERE guild_id=? ORDER BY (wallet+bank) DESC LIMIT ?').all(gid, limit),
+};
+
 const profile = {
   get:    (uid, gid) => db.prepare('SELECT * FROM profiles WHERE user_id=? AND guild_id=?').get(uid, gid),
   create: (uid, gid) => db.prepare('INSERT OR IGNORE INTO profiles (user_id, guild_id) VALUES (?,?)').run(uid, gid),
@@ -158,4 +177,4 @@ const profile = {
   },
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile };
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy };
