@@ -32,7 +32,7 @@ async function fetchTrackInfo(query) {
 }
 
 function createYtDlpStream(url) {
-  return spawn('yt-dlp', ['-f', 'bestaudio[ext=webm]/bestaudio/best', '--no-playlist', '-o', '-', '--quiet', url]).stdout;
+  return spawn('yt-dlp', ['-f', 'bestaudio[ext=webm]/bestaudio/best', '--no-playlist', '-o', '-', '--quiet', '--cookies', '/home/ubuntu/GamingBot/cookies.txt', url]).stdout;
 }
 
 async function startPlaying(queue, channel) {
