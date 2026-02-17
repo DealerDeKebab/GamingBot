@@ -32,7 +32,7 @@ async function fetchTrackInfo(query) {
 }
 
 function createYtDlpStream(url) {
-  return spawn('yt-dlp', ['-f', 'bestaudio/best', '--no-playlist', '-o', '-', '--quiet', '--extractor-args', 'youtube:player_client=android', url]).stdout;
+  return spawn('yt-dlp', ['-f', 'bestaudio', '--no-playlist', '-o', '-', '--quiet', '--extractor-args', 'youtube:player_client=android,formats=missing_pot', url]).stdout;
 }
 
 async function startPlaying(queue, channel) {
