@@ -25,6 +25,10 @@ module.exports = {
 
     // ── XP ─────────────────────────────────────────────────
     await handleXP(message, client);
+    // Coins gagnés en chattant (5-15 coins par message)
+    economy.create(message.author.id, message.guild.id);
+    const coins = Math.floor(Math.random() * 11) + 5;
+    economy.addWallet(message.author.id, message.guild.id, coins);
   },
 };
 
