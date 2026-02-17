@@ -1,0 +1,131 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+
+const db = new Database(path.join(__dirname, 'bot.db'));
+db.pragma('journal_mode = WAL');
+
+function initDatabase() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS levels (
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      xp INTEGER DEFAULT 0, level INTEGER DEFAULT 0,
+      messages INTEGER DEFAULT 0, last_xp INTEGER DEFAULT 0,
+      PRIMARY KEY (user_id, guild_id)
+    );
+    CREATE TABLE IF NOT EXISTS warns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      moderator_id TEXT NOT NULL, reason TEXT NOT NULL, timestamp INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS birthdays (
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      day INTEGER NOT NULL, month INTEGER NOT NULL, year INTEGER,
+      PRIMARY KEY (user_id, guild_id)
+    );
+    CREATE TABLE IF NOT EXISTS giveaways (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      prize TEXT NOT NULL, winners INTEGER DEFAULT 1, end_time INTEGER NOT NULL,
+      host_id TEXT NOT NULL, participants TEXT DEFAULT '[]',
+      ended INTEGER DEFAULT 0, winner_ids TEXT DEFAULT '[]'
+    );
+    CREATE TABLE IF NOT EXISTS verified (
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL, timestamp INTEGER NOT NULL,
+      PRIMARY KEY (user_id, guild_id)
+    );
+    CREATE TABLE IF NOT EXISTS captcha_pending (
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      code TEXT NOT NULL, attempts INTEGER DEFAULT 0, timestamp INTEGER NOT NULL,
+      PRIMARY KEY (user_id, guild_id)
+    );
+    CREATE TABLE IF NOT EXISTS posted_games (
+      game_id TEXT NOT NULL, source TEXT NOT NULL, posted_at INTEGER NOT NULL,
+      PRIMARY KEY (game_id, source)
+    );
+    CREATE TABLE IF NOT EXISTS posted_instagram (
+      post_id TEXT PRIMARY KEY, posted_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS raid_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL, timestamp INTEGER NOT NULL,
+      members_count INTEGER NOT NULL, action TEXT NOT NULL
+    );
+  `);
+  console.log('✅ Base de données initialisée');
+}
+
+const xp = {
+  getUser:    (uid, gid) => db.prepare('SELECT * FROM levels WHERE user_id=? AND guild_id=?').get(uid, gid),
+  create:     (uid, gid) => db.prepare('INSERT OR IGNORE INTO levels (user_id,guild_id) VALUES(?,?)').run(uid, gid),
+  addXP:      (uid, gid, amount) => {
+    xp.create(uid, gid);
+    db.prepare('UPDATE levels SET xp=xp+?, messages=messages+1, last_xp=? WHERE user_id=? AND guild_id=?')
+      .run(amount, Date.now(), uid, gid);
+  },
+  setLevel:   (uid, gid, level, xpVal) =>
+    db.prepare('UPDATE levels SET level=?, xp=? WHERE user_id=? AND guild_id=?').run(level, xpVal, uid, gid),
+  leaderboard:(gid, limit=10) =>
+    db.prepare('SELECT * FROM levels WHERE guild_id=? ORDER BY level DESC, xp DESC LIMIT ?').all(gid, limit),
+  xpForLevel: (level) => Math.floor(100 * Math.pow(1.5, level)),
+};
+
+const warn = {
+  add:    (uid, gid, mod, reason) =>
+    db.prepare('INSERT INTO warns(user_id,guild_id,moderator_id,reason,timestamp) VALUES(?,?,?,?,?)').run(uid,gid,mod,reason,Date.now()),
+  list:   (uid, gid) =>
+    db.prepare('SELECT * FROM warns WHERE user_id=? AND guild_id=? ORDER BY timestamp DESC').all(uid, gid),
+  remove: (id)       => db.prepare('DELETE FROM warns WHERE id=?').run(id),
+  clear:  (uid, gid) => db.prepare('DELETE FROM warns WHERE user_id=? AND guild_id=?').run(uid, gid),
+};
+
+const birthday = {
+  set:   (uid, gid, day, month, year=null) =>
+    db.prepare('INSERT OR REPLACE INTO birthdays(user_id,guild_id,day,month,year) VALUES(?,?,?,?,?)').run(uid,gid,day,month,year),
+  get:   (uid, gid) => db.prepare('SELECT * FROM birthdays WHERE user_id=? AND guild_id=?').get(uid, gid),
+  today: (gid) => {
+    const d = new Date();
+    return db.prepare('SELECT * FROM birthdays WHERE guild_id=? AND day=? AND month=?').all(gid, d.getDate(), d.getMonth()+1);
+  },
+  all:   (gid) => db.prepare('SELECT * FROM birthdays WHERE guild_id=?').all(gid),
+};
+
+const giveaway = {
+  create:     (data) =>
+    db.prepare('INSERT INTO giveaways(message_id,channel_id,guild_id,prize,winners,end_time,host_id) VALUES(?,?,?,?,?,?,?)')
+      .run(data.messageId, data.channelId, data.guildId, data.prize, data.winners, data.endTime, data.hostId),
+  getByMsg:   (msgId) => db.prepare('SELECT * FROM giveaways WHERE message_id=?').get(msgId),
+  active:     (gid)   => db.prepare('SELECT * FROM giveaways WHERE guild_id=? AND ended=0').all(gid),
+  expired:    ()      => db.prepare('SELECT * FROM giveaways WHERE ended=0 AND end_time<=?').all(Date.now()),
+  updatePart: (msgId, parts) =>
+    db.prepare('UPDATE giveaways SET participants=? WHERE message_id=?').run(JSON.stringify(parts), msgId),
+  end:        (msgId, winnerIds) =>
+    db.prepare('UPDATE giveaways SET ended=1, winner_ids=? WHERE message_id=?').run(JSON.stringify(winnerIds), msgId),
+};
+
+const verify = {
+  isVerified: (uid, gid) => !!db.prepare('SELECT 1 FROM verified WHERE user_id=? AND guild_id=?').get(uid, gid),
+  verify:     (uid, gid) =>
+    db.prepare('INSERT OR IGNORE INTO verified(user_id,guild_id,timestamp) VALUES(?,?,?)').run(uid, gid, Date.now()),
+};
+
+const captcha = {
+  set:    (uid, gid, code) =>
+    db.prepare('INSERT OR REPLACE INTO captcha_pending(user_id,guild_id,code,attempts,timestamp) VALUES(?,?,?,0,?)').run(uid,gid,code,Date.now()),
+  get:    (uid, gid) => db.prepare('SELECT * FROM captcha_pending WHERE user_id=? AND guild_id=?').get(uid, gid),
+  incr:   (uid, gid) => db.prepare('UPDATE captcha_pending SET attempts=attempts+1 WHERE user_id=? AND guild_id=?').run(uid, gid),
+  remove: (uid, gid) => db.prepare('DELETE FROM captcha_pending WHERE user_id=? AND guild_id=?').run(uid, gid),
+};
+
+const postedGames = {
+  isPosted:   (gameId, source) => !!db.prepare('SELECT 1 FROM posted_games WHERE game_id=? AND source=?').get(gameId, source),
+  markPosted: (gameId, source) =>
+    db.prepare('INSERT OR IGNORE INTO posted_games(game_id,source,posted_at) VALUES(?,?,?)').run(gameId, source, Date.now()),
+};
+
+const postedInstagram = {
+  isPosted:   (postId) => !!db.prepare('SELECT 1 FROM posted_instagram WHERE post_id=?').get(postId),
+  markPosted: (postId) =>
+    db.prepare('INSERT OR IGNORE INTO posted_instagram(post_id,posted_at) VALUES(?,?)').run(postId, Date.now()),
+};
+
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram };
