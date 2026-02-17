@@ -237,3 +237,94 @@ async function handleButton(interaction, client) {
 }
 
 module.exports = { handleButton };
+
+// Note: blackjack buttons handled via separate import in interactionCreate
+
+// ══════════════════════════════════════════
+//  BLACKJACK
+// ══════════════════════════════════════════
+// Note: imported in interactionCreate.js
+
+// Blackjack déjà géré ci-dessous via bj_hit/bj_stand
+
+async function handleBlackjack(interaction, client) {
+  const { economy } = require('../database/database');
+  const bj = require('../commands/economy/blackjack');
+  const games = bj.games;
+  const game  = games.get(interaction.user.id);
+  if (!game) return interaction.update({ content: '❌ Partie expirée !', embeds: [], components: [] });
+
+  const { player, dealer, mise } = game;
+
+  if (interaction.customId === 'bj_hit') {
+    player.push(bj.card());
+    const pv = bj.handValue(player);
+
+    if (pv > 21) {
+      games.delete(interaction.user.id);
+      return interaction.update({ embeds: [new EmbedBuilder().setColor('#FF0000').setTitle('🃏 Blackjack — Bust !')
+        .addFields(
+          { name: '🫵 Ta main',  value: `${bj.handStr(player)} = **${pv}**` },
+          { name: '💸 Perdu',    value: `-${mise.toLocaleString()} 🪙` }
+        )], components: [] });
+    }
+
+    if (pv === 21) {
+      // Auto-stand à 21
+      return resolveGame(interaction, game, bj, economy);
+    }
+
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('bj_hit').setLabel('🃏 Tirer').setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId('bj_stand').setLabel('✋ Rester').setStyle(ButtonStyle.Secondary),
+    );
+
+    return interaction.update({ embeds: [new EmbedBuilder().setColor('#5865F2').setTitle('🃏 Blackjack')
+      .addFields(
+        { name: '🫵 Ta main',   value: `${bj.handStr(player)} = **${pv}**` },
+        { name: '🤖 Croupier', value: `${dealer[0].value}${dealer[0].suit} + 🂠` },
+        { name: '💰 Mise',     value: `${mise.toLocaleString()} 🪙` }
+      )], components: [row] });
+  }
+
+  if (interaction.customId === 'bj_stand') {
+    return resolveGame(interaction, game, bj, economy);
+  }
+}
+
+async function resolveGame(interaction, game, bj, economy) {
+  const { player, dealer, mise } = game;
+  const { EmbedBuilder } = require('discord.js');
+
+  // Le croupier tire jusqu'à 17
+  while (bj.handValue(dealer) < 17) dealer.push(bj.card());
+
+  const pv = bj.handValue(player);
+  const dv = bj.handValue(dealer);
+  game.games?.delete(interaction.user.id);
+  bj.games.delete(interaction.user.id);
+
+  let result, gain, color;
+  if (dv > 21 || pv > dv) {
+    gain = mise; color = '#00FF7F';
+    result = `🎉 **Tu gagnes +${gain.toLocaleString()} 🪙 !**`;
+    economy.addWallet(interaction.user.id, interaction.guild.id, mise * 2);
+  } else if (pv === dv) {
+    gain = 0; color = '#FFD700';
+    result = `😐 **Égalité — remboursé !**`;
+    economy.addWallet(interaction.user.id, interaction.guild.id, mise);
+  } else {
+    gain = -mise; color = '#FF0000';
+    result = `💸 **Tu perds ${mise.toLocaleString()} 🪙 !**`;
+  }
+
+  return interaction.update({ embeds: [new EmbedBuilder().setColor(color).setTitle('🃏 Blackjack — Résultat')
+    .addFields(
+      { name: '🫵 Ta main',   value: `${bj.handStr(player)} = **${pv}**` },
+      { name: '🤖 Croupier', value: `${bj.handStr(dealer)} = **${dv}**` },
+      { name: '🏆 Résultat', value: result }
+    )], components: [] });
+}
+
+module.exports.handleBlackjack = handleBlackjack;
