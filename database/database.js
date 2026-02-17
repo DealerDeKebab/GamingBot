@@ -45,6 +45,18 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS posted_instagram (
       post_id TEXT PRIMARY KEY, posted_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS profiles (
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      bio TEXT DEFAULT 'Aucune bio pour le moment... 🎮',
+      banner_color TEXT DEFAULT '#5865F2',
+      pseudo_rocket_league TEXT DEFAULT '',
+      pseudo_cs2 TEXT DEFAULT '',
+      pseudo_valorant TEXT DEFAULT '',
+      pseudo_league_of_legends TEXT DEFAULT '',
+      pseudo_fortnite TEXT DEFAULT '',
+      pseudo_minecraft TEXT DEFAULT '',
+      PRIMARY KEY (user_id, guild_id)
+    );
     CREATE TABLE IF NOT EXISTS raid_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       guild_id TEXT NOT NULL, timestamp INTEGER NOT NULL,
@@ -128,4 +140,22 @@ const postedInstagram = {
     db.prepare('INSERT OR IGNORE INTO posted_instagram(post_id,posted_at) VALUES(?,?)').run(postId, Date.now()),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram };
+const profile = {
+  get:    (uid, gid) => db.prepare('SELECT * FROM profiles WHERE user_id=? AND guild_id=?').get(uid, gid),
+  create: (uid, gid) => db.prepare('INSERT OR IGNORE INTO profiles (user_id, guild_id) VALUES (?,?)').run(uid, gid),
+  setBio: (uid, gid, bio) => {
+    profile.create(uid, gid);
+    db.prepare('UPDATE profiles SET bio=? WHERE user_id=? AND guild_id=?').run(bio, uid, gid);
+  },
+  setPseudo: (uid, gid, game, pseudo) => {
+    profile.create(uid, gid);
+    const key = `pseudo_${game.toLowerCase().replace(/\s/g,'_')}`;
+    db.prepare(`UPDATE profiles SET ${key}=? WHERE user_id=? AND guild_id=?`).run(pseudo, uid, gid);
+  },
+  setBanner: (uid, gid, color) => {
+    profile.create(uid, gid);
+    db.prepare('UPDATE profiles SET banner_color=? WHERE user_id=? AND guild_id=?').run(color, uid, gid);
+  },
+};
+
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile };
