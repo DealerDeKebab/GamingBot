@@ -49,6 +49,23 @@ module.exports = {
     }
 
     // ══════════════════════════════════════════
+    //  MESSAGE DE BIENVENUE
+    // ══════════════════════════════════════════
+    const welcomeChannelId = process.env.WELCOME_CHANNEL_ID;
+    if (welcomeChannelId) {
+      const welcomeChannel = guild.channels.cache.get(welcomeChannelId);
+      if (welcomeChannel) {
+        const welcomeEmbed = new EmbedBuilder()
+          .setColor('#00FF7F')
+          .setTitle('👋 Bienvenue !')
+          .setDescription(`Salut ${member} ! Bienvenue sur **${guild.name}** ! 🎮\n\nN'oublie pas d'accepter le règlement pour accéder au serveur !`)
+          .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+          .setTimestamp();
+        welcomeChannel.send({ embeds: [welcomeEmbed] }).catch(() => {});
+      }
+    }
+
+    // ══════════════════════════════════════════
     //  ANTI-RAID
     // ══════════════════════════════════════════
     if (!guild.joinTimestamps) guild.joinTimestamps = [];
