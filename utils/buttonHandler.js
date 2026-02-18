@@ -410,3 +410,44 @@ async function handleBetting(interaction, client) {
 }
 
 module.exports.handleBetting = handleBetting;
+
+// ══════════════════════════════════════════
+//  ACCEPTATION RÈGLEMENT
+// ══════════════════════════════════════════
+async function handleAcceptRules(interaction, client) {
+  const muteRoleId = process.env.MUTE_ROLE_ID;
+  const memberRoleId = process.env.MEMBER_ROLE_ID;
+
+  if (!muteRoleId || !memberRoleId) {
+    return interaction.reply({ content: '❌ Rôles non configurés dans le .env !', ephemeral: true });
+  }
+
+  const member = interaction.member;
+  const muteRole = interaction.guild.roles.cache.get(muteRoleId);
+  const memberRole = interaction.guild.roles.cache.get(memberRoleId);
+
+  if (!muteRole || !memberRole) {
+    return interaction.reply({ content: '❌ Rôles introuvables !', ephemeral: true });
+  }
+
+  // Vérifier si déjà vérifié
+  if (member.roles.cache.has(memberRoleId)) {
+    return interaction.reply({ content: '✅ Tu as déjà accepté le règlement !', ephemeral: true });
+  }
+
+  try {
+    // Retirer rôle muet + ajouter rôle membre
+    await member.roles.remove(muteRole);
+    await member.roles.add(memberRole);
+
+    return interaction.reply({ 
+      content: `✅ Bienvenue sur **${interaction.guild.name}** !\n\nTu as maintenant accès à tout le serveur. Amuse-toi bien ! 🎮`, 
+      ephemeral: true 
+    });
+  } catch (error) {
+    console.error('Erreur acceptation règlement:', error);
+    return interaction.reply({ content: '❌ Une erreur est survenue !', ephemeral: true });
+  }
+}
+
+module.exports.handleAcceptRules = handleAcceptRules;
