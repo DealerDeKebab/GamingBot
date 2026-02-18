@@ -1,15 +1,25 @@
 const { EmbedBuilder } = require('discord.js');
-const { verify, captcha } = require('../database/database');
-
-function genCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array(6).fill(0).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
 
 module.exports = {
   name: 'guildMemberAdd',
   async execute(member, client) {
     const guild = member.guild;
+
+    // ══════════════════════════════════════════
+    //  AJOUTER RÔLE MUET AUTOMATIQUEMENT
+    // ══════════════════════════════════════════
+    const muteRoleId = process.env.MUTE_ROLE_ID;
+    if (muteRoleId) {
+      try {
+        const muteRole = guild.roles.cache.get(muteRoleId);
+        if (muteRole) {
+          await member.roles.add(muteRole);
+          console.log(`Rôle muet ajouté à ${member.user.tag}`);
+        }
+      } catch (error) {
+        console.error('Erreur ajout rôle muet:', error);
+      }
+    }
 
     // ══════════════════════════════════════════
     //  LOG — Membre rejoint
@@ -73,48 +83,5 @@ module.exports = {
         return;
       }
     }
-
-    // ══════════════════════════════════════════
-    //  CAPTCHA
-    // ══════════════════════════════════════════
-    if (verify.isVerified(member.id, guild.id)) return;
-
-    const code = genCode();
-    captcha.set(member.id, guild.id, code);
-
-    const dmEmbed = new EmbedBuilder()
-      .setColor('#5865F2')
-      .setTitle(`🔐 Vérification — ${guild.name}`)
-      .setDescription(
-        `Bienvenue sur **${guild.name}** !\n\n` +
-        `Pour accéder au serveur, réponds à ce message avec le code suivant :\n\n` +
-        `> **${code}**\n\n` +
-        `⏱️ Tu as **10 minutes** et **3 tentatives**.\n` +
-        `❌ Après 3 échecs, tu seras expulsé.`
-      )
-      .setThumbnail(guild.iconURL({ dynamic: true }))
-      .setTimestamp();
-
-    try {
-      await member.send({ embeds: [dmEmbed] });
-    } catch (e) {
-      const verifyCh = guild.channels.cache.get(process.env.VERIFY_CHANNEL_ID);
-      if (verifyCh) {
-        const msg = await verifyCh.send({
-          content: `${member}, tes DMs sont fermés ! Vérifie-toi ici :`,
-          embeds: [dmEmbed],
-        }).catch(() => {});
-        if (msg) setTimeout(() => msg.delete().catch(() => {}), 30000);
-      }
-    }
-
-    setTimeout(async () => {
-      const pending = captcha.get(member.id, guild.id);
-      if (pending) {
-        captcha.remove(member.id, guild.id);
-        await member.kick('Captcha expiré').catch(() => {});
-        await member.send('⏱️ Le captcha a expiré. Tu as été expulsé.').catch(() => {});
-      }
-    }, 600000);
   },
 };
