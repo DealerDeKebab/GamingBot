@@ -147,6 +147,7 @@ async function checkFreeGames(client) {
         .setFooter({ text: `Source : ${game.platform}` })
         .setTimestamp();
 
+      if (game.thumbnail) embed.setThumbnail(game.thumbnail);
       if (game.image) embed.setImage(game.image);
 
       try {
