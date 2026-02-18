@@ -202,7 +202,6 @@ const betting = {
   cancel: (msgId) => db.prepare('UPDATE bets SET status="cancelled" WHERE message_id=?').run(msgId),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions };
 
 const suggestions = {
   create: (data) => db.prepare('INSERT INTO suggestions(message_id,channel_id,guild_id,user_id,content,timestamp) VALUES(?,?,?,?,?,?)')
@@ -213,3 +212,6 @@ const suggestions = {
   reject: (msgId, response) => db.prepare('UPDATE suggestions SET status="rejected", admin_response=? WHERE message_id=?').run(response, msgId),
   pending: (gid) => db.prepare('SELECT * FROM suggestions WHERE guild_id=? AND status="pending"').all(gid),
 };
+
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions };
+
