@@ -328,3 +328,85 @@ async function resolveGame(interaction, game, bj, economy) {
 }
 
 module.exports.handleBlackjack = handleBlackjack;
+
+// ══════════════════════════════════════════
+//  PARIS
+// ══════════════════════════════════════════
+async function handleBetting(interaction, client) {
+  const { betting, economy } = require('../database/database');
+  const { EmbedBuilder } = require('discord.js');
+  
+  const msgId = interaction.message.id;
+  const bet = betting.get(msgId);
+  
+  if (!bet) return interaction.reply({ content: '❌ Pari introuvable !', ephemeral: true });
+  if (bet.status !== 'active') return interaction.reply({ content: '❌ Ce pari est terminé !', ephemeral: true });
+  if (Date.now() > bet.end_time) return interaction.reply({ content: '❌ Les mises sont closes !', ephemeral: true });
+
+  const optionIndex = parseInt(interaction.customId.split('_')[1]);
+  const options = JSON.parse(bet.options);
+  const option = options[optionIndex];
+
+  // Demander le montant via modal serait mieux mais on va faire simple avec un message éphémère
+  await interaction.reply({ 
+    content: `💰 Combien veux-tu miser sur **${option}** ?\n\nRéponds avec juste le montant (ex: 100)`,
+    ephemeral: true 
+  });
+
+  const filter = m => m.author.id === interaction.user.id;
+  const collected = await interaction.channel.awaitMessages({ filter, max: 1, time: 30000, errors: ['time'] })
+    .catch(() => null);
+
+  if (!collected) return interaction.followUp({ content: '⏱️ Temps écoulé !', ephemeral: true });
+
+  const amount = parseInt(collected.first().content);
+  await collected.first().delete().catch(() => {});
+
+  if (isNaN(amount) || amount < 10) {
+    return interaction.followUp({ content: '❌ Montant invalide ! (minimum 10 🪙)', ephemeral: true });
+  }
+
+  economy.create(interaction.user.id, interaction.guild.id);
+  const userData = economy.get(interaction.user.id, interaction.guild.id);
+
+  if (amount > userData.wallet) {
+    return interaction.followUp({ content: `❌ Tu n'as que **${userData.wallet} 🪙** !`, ephemeral: true });
+  }
+
+  // Retirer les coins
+  economy.addWallet(interaction.user.id, interaction.guild.id, -amount);
+
+  // Enregistrer le pari
+  const betsData = JSON.parse(bet.bets_data);
+  if (!betsData[optionIndex]) betsData[optionIndex] = {};
+  betsData[optionIndex][interaction.user.id] = (betsData[optionIndex][interaction.user.id] || 0) + amount;
+  betting.updateBets(msgId, betsData);
+
+  // Mettre à jour l'embed
+  const totalPool = Object.values(betsData).reduce((sum, opt) => sum + Object.values(opt).reduce((s, amt) => s + amt, 0), 0);
+  
+  const embed = EmbedBuilder.from(interaction.message.embeds[0]);
+  embed.data.fields[0] = { name: '💰 Pool total', value: `${totalPool.toLocaleString()} 🪙`, inline: true };
+
+  options.forEach((opt, i) => {
+    const optData = betsData[i] || {};
+    const optTotal = Object.values(optData).reduce((s, amt) => s + amt, 0);
+    const playerCount = Object.keys(optData).length;
+    const cote = totalPool > 0 && optTotal > 0 ? (totalPool / optTotal).toFixed(2) : '∞';
+    
+    embed.data.fields[i + 1] = {
+      name: `${i+1}️⃣ ${opt}`,
+      value: `${optTotal.toLocaleString()} 🪙 (${playerCount} joueurs) — Cote: x${cote}`,
+      inline: false
+    };
+  });
+
+  await interaction.message.edit({ embeds: [embed] });
+  
+  await interaction.followUp({ 
+    content: `✅ Pari enregistré ! **${amount.toLocaleString()} 🪙** sur **${option}**\n💰 Solde restant : ${(userData.wallet - amount).toLocaleString()} 🪙`,
+    ephemeral: true 
+  });
+}
+
+module.exports.handleBetting = handleBetting;
