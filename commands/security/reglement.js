@@ -14,21 +14,16 @@ module.exports = {
       .setColor('#5865F2')
       .setTitle('📜 Règlement du serveur')
       .setDescription(
-        `Bienvenue sur **${interaction.guild.name}** !\n\n` +
-        `Avant d'accéder au serveur, merci de lire et d'accepter le règlement :\n\n` +
-        `**1️⃣ Respect**\n` +
-        `Sois respectueux envers tous les membres. Pas d'insultes, de harcèlement ou de discrimination.\n\n` +
-        `**2️⃣ Pas de spam**\n` +
-        `Évite le spam, les messages inutiles et la publicité non autorisée.\n\n` +
-        `**3️⃣ Salons appropriés**\n` +
-        `Utilise les bons salons pour les bonnes discussions.\n\n` +
-        `**4️⃣ Pas de contenu inapproprié**\n` +
-        `Aucun contenu NSFW, violent ou illégal.\n\n` +
-        `**5️⃣ Écoute le staff**\n` +
-        `Respecte les décisions des modérateurs et administrateurs.\n\n` +
-        `───────────────────────────\n\n` +
-        `En cliquant sur **✅ J'accepte**, tu confirmes avoir lu et accepté le règlement.\n` +
-        `Tu obtiendras alors accès à tout le serveur !`
+        `Bienvenue sur **${interaction.guild.name}** ! 🎮\n\n` +
+        `**1.** 🤝 Respect mutuel — pas d'insultes ni de harcèlement\n` +
+        `**2.** 🚫 Pas de discrimination (race, genre, religion...)\n` +
+        `**3.** 📢 Pas de spam, flood, ni mentions inutiles\n` +
+        `**4.** 🔞 Aucun contenu NSFW hors salons dédiés\n` +
+        `**5.** 📣 Pas de pub sans accord d'un admin\n` +
+        `**6.** 🎮 Utilisez les bons salons pour chaque sujet\n` +
+        `**7.** 👮 Les décisions des modérateurs sont définitives\n` +
+        `**8.** 🤖 Pas de bots ou self-bot\n\n` +
+        `**En cliquant sur ✅, tu acceptes le règlement et accèdes au serveur complet.**`
       )
       .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
       .setFooter({ text: 'Clique sur le bouton ci-dessous pour accepter' })
