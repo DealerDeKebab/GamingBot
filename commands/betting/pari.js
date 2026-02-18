@@ -68,7 +68,7 @@ module.exports = {
         );
       });
 
-      const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+      const msg = await interaction.reply({ content: '@everyone', embeds: [embed], components: [row], fetchReply: true });
 
       betting.create({
         messageId: msg.id,
