@@ -1,5 +1,5 @@
 const { EmbedBuilder, ChannelType } = require('discord.js');
-const { xp, captcha, verify }       = require('../database/database');
+const { xp, captcha, verify, economy } = require('../database/database');
 
 const SPAM_MAX      = 5;       // messages max par fenêtre
 const SPAM_WINDOW   = 5000;    // fenêtre en ms
