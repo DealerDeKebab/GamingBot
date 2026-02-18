@@ -184,7 +184,6 @@ const profile = {
   },
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting };
 
 const betting = {
   create: (data) => db.prepare('INSERT INTO bets(message_id,channel_id,guild_id,title,options,end_time,creator_id) VALUES(?,?,?,?,?,?,?)')
@@ -195,3 +194,5 @@ const betting = {
   finish: (msgId, winner) => db.prepare('UPDATE bets SET status="finished", winner_option=? WHERE message_id=?').run(winner, msgId),
   cancel: (msgId) => db.prepare('UPDATE bets SET status="cancelled" WHERE message_id=?').run(msgId),
 };
+
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting };
