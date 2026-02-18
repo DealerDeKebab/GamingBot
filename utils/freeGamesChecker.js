@@ -151,7 +151,7 @@ async function checkFreeGames(client) {
 
       try {
         await channel.send({
-          content: `🎮 **Jeu gratuit disponible sur ${game.platform} !**`,
+          content: `@everyone 🎮 **Jeu gratuit disponible sur ${game.platform} !**`,
           embeds: [embed],
         });
         // Petite pause pour éviter le rate limit
