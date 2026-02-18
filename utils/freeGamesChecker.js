@@ -33,11 +33,13 @@ async function fetchEpicGames() {
       if (!isCurrentlyFree) continue;
       const thumbnail = g.keyImages?.find(i => i.type === 'Thumbnail' || i.type === 'OfferImageTall')?.url || null;
       const img = g.keyImages?.find(i => i.type === 'OfferImageWide' || i.type === 'DieselGameBoxWide')?.url || null;
+      const slug = g.offerMappings?.[0]?.pageSlug || g.catalogNs?.mappings?.[0]?.pageSlug || g.urlSlug || '';
+      const url = slug && slug.length < 100 ? `https://store.epicgames.com/fr/p/${slug}` : 'https://store.epicgames.com/fr/free-games';
       games.push({
         id:       g.id,
         title:    g.title,
         desc:     (g.description || '').substring(0, 180),
-        url:      `https://store.epicgames.com/fr/p/${g.urlSlug || g.productSlug || ''}`,
+        url:      url,
         thumbnail: thumbnail,
         image:    img,
         platform: 'Epic Games',
