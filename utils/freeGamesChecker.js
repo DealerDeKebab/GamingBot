@@ -31,12 +31,14 @@ async function fetchEpicGames() {
         return discount === 0;
       });
       if (!isCurrentlyFree) continue;
-      const img = g.keyImages?.find(i => i.type === 'Thumbnail' || i.type === 'DieselGameBoxTall' || i.type === 'OfferImageWide')?.url || null;
+      const thumbnail = g.keyImages?.find(i => i.type === 'Thumbnail' || i.type === 'OfferImageTall')?.url || null;
+      const img = g.keyImages?.find(i => i.type === 'OfferImageWide' || i.type === 'DieselGameBoxWide')?.url || null;
       games.push({
         id:       g.id,
         title:    g.title,
         desc:     (g.description || '').substring(0, 180),
         url:      `https://store.epicgames.com/fr/p/${g.urlSlug || g.productSlug || ''}`,
+        thumbnail: thumbnail,
         image:    img,
         platform: 'Epic Games',
       });
