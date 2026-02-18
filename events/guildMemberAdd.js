@@ -1,97 +1,120 @@
 const { EmbedBuilder } = require('discord.js');
-const { captcha, db }  = require('../database/database');
+const { verify, captcha } = require('../database/database');
 
 function genCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return Array(6).fill(0).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
 module.exports = {
   name: 'guildMemberAdd',
   async execute(member, client) {
-    const { guild } = member;
+    const guild = member.guild;
+
+    // ══════════════════════════════════════════
+    //  LOG — Membre rejoint
+    // ══════════════════════════════════════════
+    const logChannel = guild.channels.cache.get(process.env.LOG_CHANNEL_ID);
+    if (logChannel) {
+      const accountAge = Math.floor((Date.now() - member.user.createdTimestamp) / 86400000);
+      const isNew = accountAge < 7;
+
+      const embed = new EmbedBuilder()
+        .setColor(isNew ? '#FFA500' : '#00FF7F')
+        .setTitle('👋 Nouveau membre')
+        .addFields(
+          { name: '👤 Membre', value: `${member.user.tag} (${member.id})`, inline: false },
+          { name: '📅 Compte créé le', value: `<t:${Math.floor(member.user.createdTimestamp/1000)}:F>`, inline: true },
+          { name: '⏱️ Âge du compte', value: `${accountAge} jour(s)`, inline: true },
+          { name: '👥 Total membres', value: `${guild.memberCount}`, inline: true },
+        )
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
+
+      if (isNew) {
+        embed.setFooter({ text: '⚠️ Compte récent (< 7 jours)' });
+      }
+
+      logChannel.send({ embeds: [embed] }).catch(() => {});
+    }
+
+    // ══════════════════════════════════════════
+    //  ANTI-RAID
+    // ══════════════════════════════════════════
+    if (!guild.joinTimestamps) guild.joinTimestamps = [];
     const now = Date.now();
+    guild.joinTimestamps.push(now);
+    guild.joinTimestamps = guild.joinTimestamps.filter(t => now - t < 30000);
 
-    // ══════════════════════════════════════════════════════
-    //  ANTI-RAID — Détection d'afflux de membres
-    // ══════════════════════════════════════════════════════
     const threshold = parseInt(process.env.ANTIRAID_THRESHOLD) || 7;
-    const action    = (process.env.ANTIRAID_ACTION || 'alert').toLowerCase();
+    const action    = process.env.ANTIRAID_ACTION || 'alert';
 
-    // Stocke les timestamps de join des 30 dernières secondes
-    const joins = (client.joinTracker.get(guild.id) || []).filter(t => now - t < 30000);
-    joins.push(now);
-    client.joinTracker.set(guild.id, joins);
+    if (guild.joinTimestamps.length >= threshold) {
+      if (!guild.raidMode) {
+        guild.raidMode = true;
+        setTimeout(() => { guild.raidMode = false; }, 120000);
 
-    // Activation du mode raid
-    if (joins.length >= threshold) {
-      const raidWasActive = client.raidActive.get(guild.id);
-
-      if (!raidWasActive) {
-        client.raidActive.set(guild.id, true);
-        // Reset automatique après 2 minutes
-        setTimeout(() => client.raidActive.delete(guild.id), 2 * 60 * 1000);
-
-        const logCh = guild.channels.cache.get(process.env.LOG_CHANNEL_ID);
-        if (logCh) {
-          const embed = new EmbedBuilder()
-            .setColor('#FF0000')
-            .setTitle('🚨 MODE RAID ACTIVÉ')
-            .setDescription(
-              `**${joins.length} membres** ont rejoint en moins de 30 secondes !\n\n` +
-              `⚙️ **Action configurée :** \`${action}\`\n` +
-              `⏱️ Mode raid actif pendant **2 minutes**.`
-            )
-            .setTimestamp();
-          logCh.send({ content: '@here', embeds: [embed] });
+        if (logChannel) {
+          logChannel.send({ content: '@here', embeds: [
+            new EmbedBuilder().setColor('#FF0000').setTitle('🚨 MODE RAID ACTIVÉ !')
+              .setDescription(`**${guild.joinTimestamps.length}** membres ont rejoint en moins de 30 secondes !`)
+              .addFields({ name: '⚙️ Action', value: action === 'kick' ? 'Expulsion automatique' : action === 'ban' ? 'Bannissement automatique' : 'Alerte uniquement' })
+              .setTimestamp()
+          ]}).catch(() => {});
         }
       }
 
-      // Action anti-raid sur le nouveau membre
       if (action === 'kick') {
-        try {
-          await member.send('🚨 Le serveur est en **mode anti-raid**. Rejoins à nouveau dans quelques minutes.').catch(() => {});
-          await member.kick('Anti-raid automatique');
-          return;
-        } catch {}
+        await member.kick('Anti-raid').catch(() => {});
+        await member.send('Tu as été expulsé automatiquement — le serveur est en mode raid. Réessaie dans quelques minutes.').catch(() => {});
+        return;
       } else if (action === 'ban') {
-        try {
-          await member.ban({ reason: 'Anti-raid automatique', deleteMessageSeconds: 0 });
-          return;
-        } catch {}
+        await member.ban({ reason: 'Anti-raid' }).catch(() => {});
+        return;
       }
-      // 'alert' = laisse entrer mais log
     }
 
-    // ══════════════════════════════════════════════════════
-    //  CAPTCHA en DM
-    // ══════════════════════════════════════════════════════
+    // ══════════════════════════════════════════
+    //  CAPTCHA
+    // ══════════════════════════════════════════
+    if (verify.isVerified(member.id, guild.id)) return;
+
     const code = genCode();
     captcha.set(member.id, guild.id, code);
 
-    const embed = new EmbedBuilder()
+    const dmEmbed = new EmbedBuilder()
       .setColor('#5865F2')
-      .setTitle(`🎮 Bienvenue sur ${guild.name} !`)
+      .setTitle(`🔐 Vérification — ${guild.name}`)
       .setDescription(
-        `Salut **${member.user.username}** ! Pour accéder au serveur, prouve que tu n'es pas un bot.\n\n` +
-        `**Ton code captcha :**\n` +
-        `\`\`\`\n${code}\n\`\`\`\n` +
-        `✏️ Réponds à ce message avec exactement ce code.\n` +
-        `⚠️ **3 tentatives** — **10 minutes** pour valider.`
+        `Bienvenue sur **${guild.name}** !\n\n` +
+        `Pour accéder au serveur, réponds à ce message avec le code suivant :\n\n` +
+        `> **${code}**\n\n` +
+        `⏱️ Tu as **10 minutes** et **3 tentatives**.\n` +
+        `❌ Après 3 échecs, tu seras expulsé.`
       )
       .setThumbnail(guild.iconURL({ dynamic: true }))
-      .setFooter({ text: 'Respecte la casse — majuscules et chiffres uniquement' });
+      .setTimestamp();
 
     try {
-      await member.send({ embeds: [embed] });
-    } catch {
-      // DMs fermés
+      await member.send({ embeds: [dmEmbed] });
+    } catch (e) {
       const verifyCh = guild.channels.cache.get(process.env.VERIFY_CHANNEL_ID);
       if (verifyCh) {
-        verifyCh.send({
-          content: `⚠️ ${member} Tes DMs sont fermés ! Active-les puis rejoins à nouveau pour recevoir ton captcha.`,
-        }).then(m => setTimeout(() => m.delete().catch(() => {}), 30000));
+        const msg = await verifyCh.send({
+          content: `${member}, tes DMs sont fermés ! Vérifie-toi ici :`,
+          embeds: [dmEmbed],
+        }).catch(() => {});
+        if (msg) setTimeout(() => msg.delete().catch(() => {}), 30000);
       }
     }
+
+    setTimeout(async () => {
+      const pending = captcha.get(member.id, guild.id);
+      if (pending) {
+        captcha.remove(member.id, guild.id);
+        await member.kick('Captcha expiré').catch(() => {});
+        await member.send('⏱️ Le captcha a expiré. Tu as été expulsé.').catch(() => {});
+      }
+    }, 600000);
   },
 };
