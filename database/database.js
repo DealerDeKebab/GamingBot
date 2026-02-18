@@ -45,6 +45,13 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS posted_instagram (
       post_id TEXT PRIMARY KEY, posted_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS bets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      title TEXT NOT NULL, options TEXT NOT NULL, bets_data TEXT DEFAULT '{}',
+      end_time INTEGER NOT NULL, creator_id TEXT NOT NULL,
+      status TEXT DEFAULT 'active', winner_option TEXT DEFAULT NULL
+    );
     CREATE TABLE IF NOT EXISTS economy (
       user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       wallet INTEGER DEFAULT 0, bank INTEGER DEFAULT 0,
@@ -177,4 +184,14 @@ const profile = {
   },
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy };
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting };
+
+const betting = {
+  create: (data) => db.prepare('INSERT INTO bets(message_id,channel_id,guild_id,title,options,end_time,creator_id) VALUES(?,?,?,?,?,?,?)')
+    .run(data.messageId, data.channelId, data.guildId, data.title, JSON.stringify(data.options), data.endTime, data.creatorId),
+  get: (msgId) => db.prepare('SELECT * FROM bets WHERE message_id=?').get(msgId),
+  active: (gid) => db.prepare('SELECT * FROM bets WHERE guild_id=? AND status="active"').all(gid),
+  updateBets: (msgId, betsData) => db.prepare('UPDATE bets SET bets_data=? WHERE message_id=?').run(JSON.stringify(betsData), msgId),
+  finish: (msgId, winner) => db.prepare('UPDATE bets SET status="finished", winner_option=? WHERE message_id=?').run(winner, msgId),
+  cancel: (msgId) => db.prepare('UPDATE bets SET status="cancelled" WHERE message_id=?').run(msgId),
+};
