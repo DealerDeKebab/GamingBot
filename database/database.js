@@ -45,6 +45,13 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS posted_instagram (
       post_id TEXT PRIMARY KEY, posted_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL, content TEXT NOT NULL,
+      status TEXT DEFAULT 'pending', upvotes INTEGER DEFAULT 0, downvotes INTEGER DEFAULT 0,
+      timestamp INTEGER NOT NULL, admin_response TEXT DEFAULT NULL
+    );
     CREATE TABLE IF NOT EXISTS bets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
@@ -195,4 +202,14 @@ const betting = {
   cancel: (msgId) => db.prepare('UPDATE bets SET status="cancelled" WHERE message_id=?').run(msgId),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting };
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions };
+
+const suggestions = {
+  create: (data) => db.prepare('INSERT INTO suggestions(message_id,channel_id,guild_id,user_id,content,timestamp) VALUES(?,?,?,?,?,?)')
+    .run(data.messageId, data.channelId, data.guildId, data.userId, data.content, data.timestamp),
+  get: (msgId) => db.prepare('SELECT * FROM suggestions WHERE message_id=?').get(msgId),
+  updateVotes: (msgId, up, down) => db.prepare('UPDATE suggestions SET upvotes=?, downvotes=? WHERE message_id=?').run(up, down, msgId),
+  approve: (msgId, response) => db.prepare('UPDATE suggestions SET status="approved", admin_response=? WHERE message_id=?').run(response, msgId),
+  reject: (msgId, response) => db.prepare('UPDATE suggestions SET status="rejected", admin_response=? WHERE message_id=?').run(response, msgId),
+  pending: (gid) => db.prepare('SELECT * FROM suggestions WHERE guild_id=? AND status="pending"').all(gid),
+};
