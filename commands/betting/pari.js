@@ -22,9 +22,6 @@ module.exports = {
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
 
-    // ══════════════════════════════════════════
-    //  CRÉER UN PARI
-    // ══════════════════════════════════════════
     if (sub === 'creer') {
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return interaction.reply({ content: '❌ Seuls les admins peuvent créer des paris !', ephemeral: true });
@@ -52,7 +49,6 @@ module.exports = {
         .setFooter({ text: `Créé par ${interaction.user.tag}` })
         .setTimestamp();
 
-      // Ajouter les options avec montants à 0
       options.forEach((opt, i) => {
         embed.addFields({ name: `${i+1}️⃣ ${opt}`, value: '0 🪙 (0 joueurs) — Cote: ∞', inline: false });
       });
@@ -80,12 +76,34 @@ module.exports = {
         creatorId: interaction.user.id,
       });
 
+      // Ajouter boutons admin après expiration
+      setTimeout(async () => {
+        const adminRow = new ActionRowBuilder();
+        options.forEach((opt, i) => {
+          adminRow.addComponents(
+            new ButtonBuilder()
+              .setCustomId(`bet_win_${msg.id}_${i}`)
+              .setLabel(`✅ ${opt} gagne`)
+              .setStyle(ButtonStyle.Success)
+          );
+        });
+        adminRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`bet_cancel_${msg.id}`)
+            .setLabel('❌ Annuler')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        try {
+          const updatedMsg = await msg.fetch();
+          await updatedMsg.edit({ components: [adminRow] });
+          await msg.channel.send(`⏰ Le pari **"${title}"** est terminé ! <@&${process.env.ADMIN_ROLE_ID || ''}> Déclarez le gagnant ci-dessus.`);
+        } catch (e) {}
+      }, duree * 3600000);
+
       return;
     }
 
-    // ══════════════════════════════════════════
-    //  TERMINER UN PARI
-    // ══════════════════════════════════════════
     if (sub === 'terminer') {
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return interaction.reply({ content: '❌ Seuls les admins peuvent terminer des paris !', ephemeral: true });
@@ -122,7 +140,6 @@ module.exports = {
         return interaction.reply({ content: '⚠️ Aucun parieur sur cette option — pari annulé.', ephemeral: true });
       }
 
-      // Distribuer les gains
       let totalWinners = 0;
       for (const [uid, amount] of Object.entries(winners)) {
         const gain = Math.floor((amount / winnerPool) * totalPool);
@@ -145,9 +162,6 @@ module.exports = {
       return interaction.reply({ content: `✅ Pari terminé ! **${winner}** a gagné. ${totalWinners} gagnant(s) ont reçu leurs gains.` });
     }
 
-    // ══════════════════════════════════════════
-    //  ANNULER UN PARI
-    // ══════════════════════════════════════════
     if (sub === 'annuler') {
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
         return interaction.reply({ content: '❌ Seuls les admins peuvent annuler des paris !', ephemeral: true });
@@ -162,7 +176,6 @@ module.exports = {
       const betsData = JSON.parse(bet.bets_data);
       let refunded = 0;
 
-      // Rembourser tout le monde
       for (const opt of Object.values(betsData)) {
         for (const [uid, amount] of Object.entries(opt)) {
           economy.addWallet(uid, interaction.guild.id, amount);
