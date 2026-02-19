@@ -43,6 +43,7 @@ client.once('ready', () => {
   const { checkGiveaways }  = require('./utils/giveawayChecker');
   const { checkTwitch }     = require('./utils/twitchChecker');
   const { checkFreeGames }  = require('./utils/freeGamesChecker');
+const { createDailyChallenge, checkExpiredChallenges } = require('./utils/challengeManager');
   const { updateStats }     = require('./utils/statsUpdater');
   const { checkInstagram }  = require('./utils/instagramChecker');
 
@@ -50,6 +51,7 @@ client.once('ready', () => {
   cron.schedule('*/30 * * * * *',() => checkGiveaways(client));   // toutes les 30s
   cron.schedule('*/5 * * * *',   () => checkTwitch(client));      // toutes les 5min
   cron.schedule('0 * * * *',     () => checkFreeGames(client));   // toutes les heures
+cron.schedule('0 0 * * *',     () => { createDailyChallenge(client); checkExpiredChallenges(client); }); // minuit
   cron.schedule('*/15 * * * *',  () => checkInstagram(client));   // toutes les 15min
   cron.schedule('*/10 * * * *',   () => updateStats(client));    // stats toutes les 10min
 });
