@@ -46,6 +46,13 @@ function initDatabase() {
       post_id TEXT PRIMARY KEY, posted_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS suggestions (
+    CREATE TABLE IF NOT EXISTS daily_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL, date TEXT NOT NULL,
+      type TEXT NOT NULL, target INTEGER NOT NULL,
+      progress INTEGER DEFAULT 0, contributors TEXT DEFAULT '{}',
+      status TEXT DEFAULT 'active', message_id TEXT DEFAULT NULL
+    );
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       user_id TEXT NOT NULL, content TEXT NOT NULL,
@@ -213,5 +220,5 @@ const suggestions = {
   pending: (gid) => db.prepare('SELECT * FROM suggestions WHERE guild_id=? AND status="pending"').all(gid),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions };
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges };
 
