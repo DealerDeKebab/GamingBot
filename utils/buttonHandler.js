@@ -451,3 +451,89 @@ async function handleAcceptRules(interaction, client) {
 }
 
 module.exports.handleAcceptRules = handleAcceptRules;
+
+// ══════════════════════════════════════════
+//  PARIS ADMIN (Terminer / Annuler)
+// ══════════════════════════════════════════
+async function handleBettingAdmin(interaction, client) {
+  const { betting, economy } = require('../database/database');
+  const { EmbedBuilder } = require('discord.js');
+  
+  const customId = interaction.customId;
+  
+  // bet_win_MSGID_INDEX ou bet_cancel_MSGID
+  if (customId.startsWith('bet_win_')) {
+    const parts = customId.split('_');
+    const msgId = parts[2];
+    const winnerIndex = parseInt(parts[3]);
+    
+    const bet = betting.get(msgId);
+    if (!bet || bet.status !== 'active') {
+      return interaction.reply({ content: '❌ Ce pari est déjà terminé !', ephemeral: true });
+    }
+    
+    const options = JSON.parse(bet.options);
+    const winner = options[winnerIndex];
+    const betsData = JSON.parse(bet.bets_data);
+    
+    const winners = betsData[winnerIndex] || {};
+    const totalPool = Object.values(betsData).reduce((sum, opt) => sum + Object.values(opt).reduce((s, amt) => s + amt, 0), 0);
+    const winnerPool = Object.values(winners).reduce((s, amt) => s + amt, 0);
+    
+    if (winnerPool === 0) {
+      betting.cancel(msgId);
+      const embed = EmbedBuilder.from(interaction.message.embeds[0])
+        .setColor('#FF0000')
+        .setTitle(`🎲 ${bet.title} — Annulé`)
+        .setDescription('Aucun parieur sur l\'option gagnante !');
+      await interaction.update({ embeds: [embed], components: [] });
+      return;
+    }
+    
+    let totalWinners = 0;
+    for (const [uid, amount] of Object.entries(winners)) {
+      const gain = Math.floor((amount / winnerPool) * totalPool);
+      economy.addWallet(uid, interaction.guild.id, gain);
+      totalWinners++;
+    }
+    
+    betting.finish(msgId, winner);
+    
+    const embed = EmbedBuilder.from(interaction.message.embeds[0])
+      .setColor('#00FF7F')
+      .setTitle(`🎲 ${bet.title} — Terminé !`)
+      .setDescription(`✅ **Option gagnante : ${winner}**\n\n💰 Pool total : ${totalPool.toLocaleString()} 🪙\n🏆 ${totalWinners} gagnant(s)`);
+    
+    await interaction.update({ embeds: [embed], components: [] });
+  }
+  
+  if (customId.startsWith('bet_cancel_')) {
+    const msgId = customId.split('_')[2];
+    const bet = betting.get(msgId);
+    
+    if (!bet || bet.status !== 'active') {
+      return interaction.reply({ content: '❌ Ce pari est déjà terminé !', ephemeral: true });
+    }
+    
+    const betsData = JSON.parse(bet.bets_data);
+    let refunded = 0;
+    
+    for (const opt of Object.values(betsData)) {
+      for (const [uid, amount] of Object.entries(opt)) {
+        economy.addWallet(uid, interaction.guild.id, amount);
+        refunded++;
+      }
+    }
+    
+    betting.cancel(msgId);
+    
+    const embed = EmbedBuilder.from(interaction.message.embeds[0])
+      .setColor('#FF0000')
+      .setTitle(`🎲 ${bet.title} — Annulé`)
+      .setDescription(`Tous les parieurs ont été remboursés (${refunded} joueurs).`);
+    
+    await interaction.update({ embeds: [embed], components: [] });
+  }
+}
+
+module.exports.handleBettingAdmin = handleBettingAdmin;
