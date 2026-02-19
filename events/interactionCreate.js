@@ -1,4 +1,4 @@
-const { handleButton, handleBlackjack, handleBetting, handleAcceptRules } = require('../utils/buttonHandler');
+const { handleButton, handleBlackjack, handleBetting, handleAcceptRules, handleBettingAdmin } = require('../utils/buttonHandler');
 const { handleSelectMenu } = require('../utils/selectMenuHandler');
 
 module.exports = {
@@ -23,7 +23,9 @@ module.exports = {
     // ── Boutons ─────────────────────────────────────────────
     if (interaction.isButton()) {
       try {
-        if (interaction.customId === 'accept_rules') {
+        if (interaction.customId.startsWith('bet_win_') || interaction.customId.startsWith('bet_cancel_')) {
+          await handleBettingAdmin(interaction, client);
+        } else if (interaction.customId === 'accept_rules') {
           await handleAcceptRules(interaction, client);
         } else if (interaction.customId.startsWith('bet_')) {
           await handleBetting(interaction, client);
