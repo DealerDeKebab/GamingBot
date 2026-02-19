@@ -49,23 +49,51 @@ async function fetchEpicGames() {
   return games;
 }
 
-// ── 2. Steam (via SteamDB RSS) ────────────────────────────
+// ── 2. Steam (via FreeToGame API filtered) ────────────────
 async function fetchSteamGames() {
   const games = [];
   try {
-    const feed = await rss.parseURL('https://store.steampowered.com/feeds/newdeals.xml');
-    for (const item of (feed.items || []).slice(0, 5)) {
-      if (!item.title?.toLowerCase().includes('free') && !item.title?.toLowerCase().includes('gratuit')) continue;
+    // Utiliser l'API FreeToGame qui inclut les jeux Steam gratuits temporaires
+    const res = await axios.get('https://www.freetogame.com/api/games', { 
+      timeout: 8000,
+      params: { platform: 'pc', 'sort-by': 'release-date' }
+    });
+    
+    const steamGames = (res.data || [])
+      .filter(g => g.publisher && g.publisher.toLowerCase().includes('steam'))
+      .slice(0, 3); // Limiter à 3 jeux Steam récents
+    
+    for (const g of steamGames) {
       games.push({
-        id:       item.link || item.title,
-        title:    item.title,
-        desc:     (item.contentSnippet || '').substring(0, 180),
-        url:      item.link || 'https://store.steampowered.com',
+        id:       g.id?.toString() || g.title,
+        title:    g.title || 'Jeu Steam',
+        desc:     (g.short_description || '').substring(0, 180),
+        url:      g.game_url || `https://store.steampowered.com/search/?term=${encodeURIComponent(g.title)}`,
+        thumbnail: g.thumbnail || null,
         image:    null,
         platform: 'Steam',
       });
     }
-  } catch (e) { console.error('Steam RSS error:', e.message); }
+  } catch (e) { 
+    // Fallback: essayer le flux RSS Steam
+    try {
+      const feed = await rss.parseURL('https://store.steampowered.com/feeds/newdeals.xml');
+      for (const item of (feed.items || []).slice(0, 3)) {
+        if (!item.title?.toLowerCase().includes('free') && !item.title?.toLowerCase().includes('gratuit')) continue;
+        games.push({
+          id:       item.link || item.title,
+          title:    item.title,
+          desc:     (item.contentSnippet || '').substring(0, 180),
+          url:      item.link || 'https://store.steampowered.com',
+          thumbnail: null,
+          image:    null,
+          platform: 'Steam',
+        });
+      }
+    } catch (fallbackError) {
+      console.error('Steam fetch error:', fallbackError.message);
+    }
+  }
   return games;
 }
 
