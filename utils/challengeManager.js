@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { challenges, economy } = require('../database/database');
+const { challenges, economy, db } = require('../database/database');
 
 const CHALLENGE_TYPES = [
   { type: 'messages', label: '📝 Envoyez {target} messages collectivement', target: 500, reward: 200 },
