@@ -27,10 +27,17 @@ async function createDailyChallenge(client) {
     });
 
     const channelId = process.env.CHALLENGE_CHANNEL_ID;
-    if (!channelId) continue;
+    if (!channelId) {
+      console.log('❌ CHALLENGE_CHANNEL_ID non défini dans .env');
+      continue;
+    }
 
     const channel = guild.channels.cache.get(channelId);
-    if (!channel) continue;
+    if (!channel) {
+      console.log(`❌ Salon défis introuvable (ID: ${channelId}) dans ${guild.name}`);
+      continue;
+    }
+    console.log(`✅ Salon défis trouvé: ${channel.name}`);
 
     const embed = new EmbedBuilder()
       .setColor('#FFD700')
