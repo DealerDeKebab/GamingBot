@@ -46,6 +46,12 @@ function initDatabase() {
       post_id TEXT PRIMARY KEY, posted_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL, content TEXT NOT NULL,
+      status TEXT DEFAULT 'pending', upvotes INTEGER DEFAULT 0, downvotes INTEGER DEFAULT 0,
+      timestamp INTEGER NOT NULL, admin_response TEXT DEFAULT NULL
+    );
     CREATE TABLE IF NOT EXISTS daily_challenges (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       guild_id TEXT NOT NULL, date TEXT NOT NULL,
