@@ -220,5 +220,23 @@ const suggestions = {
   pending: (gid) => db.prepare('SELECT * FROM suggestions WHERE guild_id=? AND status="pending"').all(gid),
 };
 
+const challenges = {
+  getCurrent: (gid) => db.prepare('SELECT * FROM daily_challenges WHERE guild_id=? AND date=? LIMIT 1').get(gid, new Date().toISOString().split('T')[0]),
+  create: (data) => db.prepare('INSERT INTO daily_challenges(guild_id,date,type,target,progress,contributors,status) VALUES(?,?,?,?,?,?,?)').run(data.guildId, data.date, data.type, data.target, 0, '{}', 'active'),
+  updateProgress: (id, progress, contributors) => db.prepare('UPDATE daily_challenges SET progress=?, contributors=? WHERE id=?').run(progress, JSON.stringify(contributors), id),
+  complete: (id) => db.prepare('UPDATE daily_challenges SET status="completed" WHERE id=?').run(id),
+  fail: (id) => db.prepare('UPDATE daily_challenges SET status="failed" WHERE id=?').run(id),
+  getHistory: (gid) => db.prepare('SELECT * FROM daily_challenges WHERE guild_id=? ORDER BY date DESC LIMIT 10').all(gid),
+  getUserStats: (gid, uid) => {
+    const allChallenges = db.prepare('SELECT * FROM daily_challenges WHERE guild_id=?').all(gid);
+    let totalContributions = 0;
+    for (const c of allChallenges) {
+      const contributors = JSON.parse(c.contributors || '{}');
+      totalContributions += contributors[uid] || 0;
+    }
+    return totalContributions;
+  },
+};
+
 module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges };
 
