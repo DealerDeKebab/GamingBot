@@ -59,12 +59,6 @@ function initDatabase() {
       progress INTEGER DEFAULT 0, contributors TEXT DEFAULT '{}',
       status TEXT DEFAULT 'active', message_id TEXT DEFAULT NULL
     );
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-      user_id TEXT NOT NULL, content TEXT NOT NULL,
-      status TEXT DEFAULT 'pending', upvotes INTEGER DEFAULT 0, downvotes INTEGER DEFAULT 0,
-      timestamp INTEGER NOT NULL, admin_response TEXT DEFAULT NULL
-    );
     CREATE TABLE IF NOT EXISTS bets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
