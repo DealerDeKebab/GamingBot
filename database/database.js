@@ -72,13 +72,6 @@ function initDatabase() {
       end_time INTEGER NOT NULL, creator_id TEXT NOT NULL,
       status TEXT DEFAULT 'active', winner_option TEXT DEFAULT NULL
     );
-    CREATE TABLE IF NOT EXISTS game_accounts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
-      platform TEXT NOT NULL, account_id TEXT NOT NULL, username TEXT,
-      linked_at INTEGER DEFAULT (strftime('%s', 'now')),
-      UNIQUE(user_id, guild_id, platform)
-    );
     CREATE TABLE IF NOT EXISTS temp_voice (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       channel_id TEXT UNIQUE NOT NULL,
