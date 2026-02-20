@@ -258,5 +258,13 @@ const challenges = {
   },
 };
 
+const tempVoice = {
+  create: (channelId, ownerId, guildId) => db.prepare('INSERT INTO temp_voice(channel_id,owner_id,guild_id,created_at) VALUES(?,?,?,?)').run(channelId, ownerId, guildId, Date.now()),
+  get: (channelId) => db.prepare('SELECT * FROM temp_voice WHERE channel_id=?').get(channelId),
+  getByOwner: (ownerId) => db.prepare('SELECT * FROM temp_voice WHERE owner_id=?').get(ownerId),
+  delete: (channelId) => db.prepare('DELETE FROM temp_voice WHERE channel_id=?').run(channelId),
+  getAll: (guildId) => db.prepare('SELECT * FROM temp_voice WHERE guild_id=?').all(guildId),
+};
+
 module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice };
 
