@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { challenges, economy, db } = require('../database/database');
+const { challenges, economy } = require('../database/database');
 
 const CHALLENGE_TYPES = [
   { type: 'messages', label: '📝 Envoyez {target} messages collectivement', target: 500, reward: 200 },
@@ -9,7 +9,6 @@ const CHALLENGE_TYPES = [
   { type: 'unique_members', label: '👥 {target} membres différents doivent être actifs', target: 10, reward: 250 },
 ];
 
-// Créer un nouveau défi quotidien
 async function createDailyChallenge(client) {
   const today = new Date().toISOString().split('T')[0];
   
@@ -27,17 +26,10 @@ async function createDailyChallenge(client) {
     });
 
     const channelId = process.env.CHALLENGE_CHANNEL_ID;
-    if (!channelId) {
-      console.log('❌ CHALLENGE_CHANNEL_ID non défini dans .env');
-      continue;
-    }
+    if (!channelId) continue;
 
     const channel = guild.channels.cache.get(channelId);
-    if (!channel) {
-      console.log(`❌ Salon défis introuvable (ID: ${channelId}) dans ${guild.name}`);
-      continue;
-    }
-    console.log(`✅ Salon défis trouvé: ${channel.name}`);
+    if (!channel) continue;
 
     const embed = new EmbedBuilder()
       .setColor('#FFD700')
@@ -53,17 +45,10 @@ async function createDailyChallenge(client) {
       .setFooter({ text: 'Le défi se termine à minuit' })
       .setTimestamp();
 
-    const msg = await channel.send({ content: '@everyone', embeds: [embed] });
-    
-    // Sauvegarder l'ID du message
-    const challenge = challenges.getCurrent(guild.id);
-    if (challenge) {
-      db.prepare('UPDATE daily_challenges SET message_id=? WHERE id=?').run(msg.id, challenge.id);
-    }
+    await channel.send({ content: '@everyone', embeds: [embed] });
   }
 }
 
-// Mettre à jour la progression d'un défi
 function updateChallengeProgress(guildId, userId, type, amount = 1) {
   const challenge = challenges.getCurrent(guildId);
   if (!challenge || challenge.status !== 'active' || challenge.type !== type) return;
@@ -82,13 +67,11 @@ function updateChallengeProgress(guildId, userId, type, amount = 1) {
 
   challenges.updateProgress(challenge.id, newProgress, contributors);
 
-  // Vérifier si le défi est terminé
   if (newProgress >= challenge.target) {
     completeChallenge(challenge.id, guildId);
   }
 }
 
-// Terminer un défi et distribuer les récompenses
 async function completeChallenge(challengeId, guildId) {
   const challenge = challenges.getCurrent(guildId);
   if (!challenge || challenge.status !== 'active') return;
@@ -101,7 +84,6 @@ async function completeChallenge(challengeId, guildId) {
   const contributors = JSON.parse(challenge.contributors || '{}');
   const topContributors = Object.entries(contributors).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // Récompenser TOUT LE MONDE
   const { db } = require('../database/database');
   const allMembers = db.prepare('SELECT DISTINCT user_id FROM economy WHERE guild_id=?').all(guildId);
   
@@ -109,7 +91,6 @@ async function completeChallenge(challengeId, guildId) {
     economy.addWallet(member.user_id, guildId, reward);
   }
 
-  // Bonus top 3
   const bonusReward = Math.floor(reward / 2);
   for (const [userId] of topContributors) {
     economy.addWallet(userId, guildId, bonusReward);
@@ -118,7 +99,6 @@ async function completeChallenge(challengeId, guildId) {
   console.log(`✅ Défi terminé pour ${guildId} — ${allMembers.length} membres récompensés`);
 }
 
-// Vérifier les défis expirés à minuit
 async function checkExpiredChallenges(client) {
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
   
