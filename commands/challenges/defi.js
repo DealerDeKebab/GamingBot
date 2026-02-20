@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { challenges } = require('../../database/database');
 
 module.exports = {
@@ -7,7 +7,8 @@ module.exports = {
     .setDescription('🎯 Défis quotidiens communautaires')
     .addSubcommand(s => s.setName('actuel').setDescription('Voir le défi du jour'))
     .addSubcommand(s => s.setName('stats').setDescription('Voir tes contributions'))
-    .addSubcommand(s => s.setName('historique').setDescription('Voir les défis passés')),
+    .addSubcommand(s => s.setName('historique').setDescription('Voir les défis passés'))
+    .addSubcommand(s => s.setName('forcer').setDescription('Forcer la création d\'un défi (Admin)')),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
@@ -106,6 +107,23 @@ module.exports = {
       });
 
       return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    if (sub === 'forcer') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({ content: '❌ Seuls les admins peuvent forcer un défi !', ephemeral: true });
+      }
+
+      const { createDailyChallenge } = require('../../utils/challengeManager');
+      await interaction.deferReply({ ephemeral: true });
+      
+      try {
+        await createDailyChallenge(interaction.client);
+        return interaction.editReply({ content: '✅ Un nouveau défi a été créé !' });
+      } catch (error) {
+        console.error('Erreur création défi:', error);
+        return interaction.editReply({ content: '❌ Erreur lors de la création du défi !' });
+      }
     }
   },
 };
