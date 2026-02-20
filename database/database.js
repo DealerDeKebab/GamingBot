@@ -59,12 +59,32 @@ function initDatabase() {
       progress INTEGER DEFAULT 0, contributors TEXT DEFAULT '{}',
       status TEXT DEFAULT 'active', message_id TEXT DEFAULT NULL
     );
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL, content TEXT NOT NULL,
+      status TEXT DEFAULT 'pending', upvotes INTEGER DEFAULT 0, downvotes INTEGER DEFAULT 0,
+      timestamp INTEGER NOT NULL, admin_response TEXT DEFAULT NULL
+    );
     CREATE TABLE IF NOT EXISTS bets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message_id TEXT UNIQUE, channel_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       title TEXT NOT NULL, options TEXT NOT NULL, bets_data TEXT DEFAULT '{}',
       end_time INTEGER NOT NULL, creator_id TEXT NOT NULL,
       status TEXT DEFAULT 'active', winner_option TEXT DEFAULT NULL
+    );
+    CREATE TABLE IF NOT EXISTS game_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
+      platform TEXT NOT NULL, account_id TEXT NOT NULL, username TEXT,
+      linked_at INTEGER DEFAULT (strftime('%s', 'now')),
+      UNIQUE(user_id, guild_id, platform)
+    );
+    CREATE TABLE IF NOT EXISTS temp_voice (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      channel_id TEXT UNIQUE NOT NULL,
+      owner_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS economy (
       user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
@@ -238,5 +258,5 @@ const challenges = {
   },
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges };
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, gameAccounts, tempVoice };
 
