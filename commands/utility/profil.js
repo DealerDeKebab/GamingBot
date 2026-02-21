@@ -84,7 +84,7 @@ module.exports = {
       const achievementsData = achievements.getUser(targetUser.id, interaction.guild.id);
 
       // Calculer le rank
-      const allUsers = xp.getGuild(interaction.guild.id);
+      const allUsers = xp.getAll(interaction.guild.id);
       const sorted = allUsers.sort((a, b) => {
         const levelDiff = b.level - a.level;
         return levelDiff !== 0 ? levelDiff : b.xp - a.xp;
