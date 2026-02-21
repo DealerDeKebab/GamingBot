@@ -261,5 +261,20 @@ const tempVoice = {
   getAll: (guildId) => db.prepare('SELECT * FROM temp_voice WHERE guild_id=?').all(guildId),
 };
 
+const achievements = {
+  unlock: (userId, guildId, achievementId) => {
+    const existing = db.prepare('SELECT * FROM achievements WHERE user_id=? AND guild_id=? AND achievement_id=?').get(userId, guildId, achievementId);
+    if (existing) return false;
+    db.prepare('INSERT INTO achievements(user_id,guild_id,achievement_id,unlocked_at) VALUES(?,?,?,?)').run(userId, guildId, achievementId, Date.now());
+    return true;
+  },
+  getUser: (userId, guildId) => db.prepare('SELECT * FROM achievements WHERE user_id=? AND guild_id=?').all(userId, guildId),
+  has: (userId, guildId, achievementId) => {
+    const result = db.prepare('SELECT * FROM achievements WHERE user_id=? AND guild_id=? AND achievement_id=?').get(userId, guildId, achievementId);
+    return !!result;
+  },
+  getAll: (guildId) => db.prepare('SELECT * FROM achievements WHERE guild_id=?').all(guildId),
+};
+
 module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements };
 
