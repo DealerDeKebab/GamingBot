@@ -71,6 +71,7 @@ module.exports = {
 
       await interaction.reply({ content: '✅ Giveaway créé !', ephemeral: true });
       const msg = await interaction.channel.send({
+        content: '@everyone 🎉 **NOUVEAU GIVEAWAY !**',
         embeds: [new EmbedBuilder().setColor('#FFD700').setTitle('🎉 GIVEAWAY !')
           .setDescription(
             `**${prize}**\n\n` +
