@@ -73,6 +73,14 @@ function initDatabase() {
       guild_id TEXT NOT NULL,
       created_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      achievement_id TEXT NOT NULL,
+      unlocked_at INTEGER NOT NULL,
+      UNIQUE(user_id, guild_id, achievement_id)
+    );
     CREATE TABLE IF NOT EXISTS economy (
       user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       wallet INTEGER DEFAULT 0, bank INTEGER DEFAULT 0,
@@ -253,5 +261,5 @@ const tempVoice = {
   getAll: (guildId) => db.prepare('SELECT * FROM temp_voice WHERE guild_id=?').all(guildId),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice };
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements };
 
