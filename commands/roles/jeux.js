@@ -8,9 +8,14 @@ const GAMES = {
   'CS2':               { emoji: '🔫', envKey: 'ROLE_CS2',      ranks: ['Silver','Gold Nova','Master Guardian','Legendary Eagle','Supreme','Global Elite'],              rankEnv: ['ROLE_CS2_SILVER','ROLE_CS2_GOLD','ROLE_CS2_MG','ROLE_CS2_LE','ROLE_CS2_SUPREME','ROLE_CS2_GE'] },
   'Valorant':          { emoji: '🎯', envKey: 'ROLE_VALORANT', ranks: ['Iron','Bronze','Silver','Gold','Platinum','Diamond','Ascendant','Immortal','Radiant'],           rankEnv: ['ROLE_VAL_IRON','ROLE_VAL_BRONZE','ROLE_VAL_SILVER','ROLE_VAL_GOLD','ROLE_VAL_PLAT','ROLE_VAL_DIAMOND','ROLE_VAL_ASC','ROLE_VAL_IMMORTAL','ROLE_VAL_RADIANT'] },
   'League of Legends': { emoji: '⚔️', envKey: 'ROLE_LOL',      ranks: ['Iron','Bronze','Silver','Gold','Platinum','Emerald','Diamond','Master','Grandmaster','Challenger'], rankEnv: [] },
-  'Fortnite':          { emoji: '🏗️', envKey: 'ROLE_FORTNITE', ranks: ['Bronze','Silver','Gold','Platinum','Diamond','Elite','Champion','Unreal'],                       rankEnv: [] },
+  'Fortnite':          { emoji: '🏝️', envKey: 'ROLE_FORTNITE', ranks: ['Bronze','Silver','Gold','Platinum','Diamond','Elite','Champion','Unreal'],                       rankEnv: [] },
   'Minecraft':         { emoji: '⛏️', envKey: 'ROLE_MINECRAFT', ranks: [], rankEnv: [] },
   'Call of Duty':      { emoji: '🎖️', envKey: 'ROLE_COD',      ranks: [], rankEnv: [] },
+  'Battlefield':       { emoji: '💥', envKey: 'ROLE_BATTLEFIELD', ranks: [], rankEnv: [] },
+  'Rust':              { emoji: '⚒️', envKey: 'ROLE_RUST',     ranks: [], rankEnv: [] },
+  'DayZ':              { emoji: '🧟', envKey: 'ROLE_DAYZ',     ranks: [], rankEnv: [] },
+  'World of Warcraft': { emoji: '🐉', envKey: 'ROLE_WOW',      ranks: [], rankEnv: [] },
+  'Rainbow Six Siege': { emoji: '🎯', envKey: 'ROLE_R6',       ranks: [], rankEnv: [] },
 };
 
 module.exports = {
