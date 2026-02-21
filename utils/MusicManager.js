@@ -5,7 +5,6 @@ class MusicManager {
     this.client = client;
     this.queues = new Map();
     
-    // Configuration Shoukaku
     const nodes = [{
       name: 'main',
       url: `${process.env.LAVALINK_HOST || 'localhost'}:${process.env.LAVALINK_PORT || 2333}`,
@@ -40,12 +39,10 @@ class MusicManager {
 
     await interaction.deferReply();
 
-    // Créer ou récupérer le player
     let player = this.shoukaku.players.get(interaction.guildId);
-    const node = this.shoukaku.getNode();
+    const node = this.shoukaku.nodes.get('main');
     
     if (!player) {
-      const node = this.shoukaku.getNode();
       player = await node.joinChannel({
         guildId: interaction.guildId,
         channelId: voiceChannel.id,
@@ -53,7 +50,6 @@ class MusicManager {
         deaf: true
       });
 
-      // Events du player
       player.on('end', () => this.handleTrackEnd(interaction.guildId, player));
       player.on('exception', (data) => {
         console.error('Erreur lecture:', data);
@@ -65,7 +61,6 @@ class MusicManager {
       });
     }
 
-    // Rechercher la piste
     const result = await node.rest.resolve(query.startsWith('http') ? query : `ytsearch:${query}`);
     
     if (!result || !result.tracks.length) {
@@ -74,7 +69,6 @@ class MusicManager {
 
     const track = result.tracks[0];
 
-    // Ajouter à la queue
     let queue = this.queues.get(interaction.guildId);
     if (!queue) {
       queue = { tracks: [], current: null, textChannel: interaction.channel.id, voiceChannel: voiceChannel.id };
@@ -83,7 +77,6 @@ class MusicManager {
 
     queue.tracks.push(track);
 
-    // Si rien ne joue, lancer
     if (!player.track) {
       this.playNext(interaction.guildId, player);
       return interaction.editReply(`🎵 Lecture : **${track.info.title}**`);
