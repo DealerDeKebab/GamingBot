@@ -119,6 +119,7 @@ function initDatabase() {
 
 const xp = {
   getUser:    (uid, gid) => db.prepare('SELECT * FROM levels WHERE user_id=? AND guild_id=?').get(uid, gid),
+  getAll:     (gid) => db.prepare('SELECT * FROM levels WHERE guild_id=? ORDER BY level DESC, xp DESC').all(gid),
   create:     (uid, gid) => db.prepare('INSERT OR IGNORE INTO levels (user_id,guild_id) VALUES(?,?)').run(uid, gid),
   addXP:      (uid, gid, amount) => {
     xp.create(uid, gid);
