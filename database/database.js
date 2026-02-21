@@ -212,6 +212,13 @@ const economy = {
 const profile = {
   get:    (uid, gid) => db.prepare('SELECT * FROM profiles WHERE user_id=? AND guild_id=?').get(uid, gid),
   create: (uid, gid) => db.prepare('INSERT OR IGNORE INTO profiles (user_id, guild_id) VALUES (?,?)').run(uid, gid),
+  set: (uid, gid, data) => {
+    profile.create(uid, gid);
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    const setClause = keys.map(k => `${k}=?`).join(', ');
+    db.prepare(`UPDATE profiles SET ${setClause} WHERE user_id=? AND guild_id=?`).run(...values, uid, gid);
+  },
   setBio: (uid, gid, bio) => {
     profile.create(uid, gid);
     db.prepare('UPDATE profiles SET bio=? WHERE user_id=? AND guild_id=?').run(bio, uid, gid);
