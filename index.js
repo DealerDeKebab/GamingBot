@@ -46,6 +46,7 @@ client.once('ready', () => {
 const { createDailyChallenge, checkExpiredChallenges } = require('./utils/challengeManager');
   const { updateStats }     = require('./utils/statsUpdater');
   const { checkInstagram }  = require('./utils/instagramChecker');
+  const { startGameLeaderboardUpdater } = require('./utils/gameStatsUpdater');
 
   cron.schedule('0 9 * * *',     () => checkBirthdays(client));   // tous les jours à 9h
   cron.schedule('*/30 * * * * *',() => checkGiveaways(client));   // toutes les 30s
@@ -54,6 +55,9 @@ const { createDailyChallenge, checkExpiredChallenges } = require('./utils/challe
 cron.schedule('0 0 * * *',     () => { createDailyChallenge(client); checkExpiredChallenges(client); }); // minuit
   cron.schedule('*/15 * * * *',  () => checkInstagram(client));   // toutes les 15min
   cron.schedule('*/10 * * * *',   () => updateStats(client));    // stats toutes les 10min
+  
+  // Démarrer l'auto-update du leaderboard jeux
+  startGameLeaderboardUpdater(client);
 });
 
 main().catch(console.error);
