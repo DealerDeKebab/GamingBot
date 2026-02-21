@@ -168,7 +168,18 @@ async function handleXP(message, client) {
       .setDescription(`🎉 GG **${message.author}** ! Tu passes au **niveau ${newLvl}** ! 🚀`)
       .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
 
-    const lvlMsg = await message.channel.send({ embeds: [embed] });
-    setTimeout(() => lvlMsg.delete().catch(() => {}), 12000);
+    // Envoyer dans le salon dédié si configuré, sinon dans le salon actuel
+    const levelUpChannelId = process.env.LEVELUP_CHANNEL_ID;
+    const targetChannel = levelUpChannelId 
+      ? message.guild.channels.cache.get(levelUpChannelId) 
+      : message.channel;
+
+    if (targetChannel) {
+      const lvlMsg = await targetChannel.send({ embeds: [embed] });
+      // Ne pas supprimer si c'est dans le salon dédié
+      if (!levelUpChannelId) {
+        setTimeout(() => lvlMsg.delete().catch(() => {}), 12000);
+      }
+    }
   }
 }
