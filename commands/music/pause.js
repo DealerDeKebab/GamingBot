@@ -1,16 +1,21 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { AudioPlayerStatus } = require('@discordjs/voice');
+
 module.exports = {
-  data: new SlashCommandBuilder().setName('pause').setDescription('⏸️ Pause / Reprendre'),
-  async execute(interaction, client) {
-    const q = client.musicQueues.get(interaction.guild.id);
-    if (!q?.player) return interaction.reply({ content: '❌ Rien en lecture.', ephemeral: true });
-    if (q.player.state.status === AudioPlayerStatus.Paused) {
-      q.player.unpause();
-      await interaction.reply('▶️ Lecture reprise !');
+  data: new SlashCommandBuilder()
+    .setName('pause')
+    .setDescription('⏸️ Mettre en pause'),
+
+  async execute(interaction) {
+    if (!interaction.member.voice.channel) {
+      return interaction.reply({ content: '❌ Tu dois être dans un salon vocal !', ephemeral: true });
+    }
+
+    const paused = interaction.client.musicManager.pause(interaction.guildId);
+    
+    if (paused) {
+      return interaction.reply('⏸️ Musique en pause.');
     } else {
-      q.player.pause();
-      await interaction.reply('⏸️ Mis en pause.');
+      return interaction.reply({ content: '❌ Aucune musique en cours !', ephemeral: true });
     }
   },
 };
