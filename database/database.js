@@ -244,9 +244,9 @@ const suggestions = {
     .run(data.messageId, data.channelId, data.guildId, data.userId, data.content, data.timestamp),
   get: (msgId) => db.prepare('SELECT * FROM suggestions WHERE message_id=?').get(msgId),
   updateVotes: (msgId, up, down) => db.prepare('UPDATE suggestions SET upvotes=?, downvotes=? WHERE message_id=?').run(up, down, msgId),
-  approve: (msgId, response) => db.prepare('UPDATE suggestions SET status="approved", admin_response=? WHERE message_id=?').run(response, msgId),
-  reject: (msgId, response) => db.prepare('UPDATE suggestions SET status="rejected", admin_response=? WHERE message_id=?').run(response, msgId),
-  pending: (gid) => db.prepare('SELECT * FROM suggestions WHERE guild_id=? AND status="pending"').all(gid),
+  approve: (msgId, response) => db.prepare('UPDATE suggestions SET status=?, admin_response=? WHERE message_id=?').run('approved', response, msgId),
+  reject: (msgId, response) => db.prepare('UPDATE suggestions SET status=?, admin_response=? WHERE message_id=?').run('rejected', response, msgId),
+  pending: (gid) => db.prepare('SELECT * FROM suggestions WHERE guild_id=? AND status=?').all(gid, 'pending'),
 };
 
 const challenges = {
