@@ -81,6 +81,15 @@ function initDatabase() {
       unlocked_at INTEGER NOT NULL,
       UNIQUE(user_id, guild_id, achievement_id)
     );
+    CREATE TABLE IF NOT EXISTS game_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      game_name TEXT NOT NULL,
+      start_time INTEGER NOT NULL,
+      end_time INTEGER DEFAULT NULL,
+      duration INTEGER DEFAULT NULL
+    );
     CREATE TABLE IF NOT EXISTS economy (
       user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       wallet INTEGER DEFAULT 0, bank INTEGER DEFAULT 0,
@@ -276,5 +285,27 @@ const achievements = {
   getAll: (guildId) => db.prepare('SELECT * FROM achievements WHERE guild_id=?').all(guildId),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements };
+const gameSessions = {
+  start: (userId, guildId, gameName) => {
+    const active = db.prepare('SELECT * FROM game_sessions WHERE user_id=? AND guild_id=? AND end_time IS NULL').get(userId, guildId);
+    if (active) return null;
+    const result = db.prepare('INSERT INTO game_sessions(user_id,guild_id,game_name,start_time) VALUES(?,?,?,?)').run(userId, guildId, gameName, Date.now());
+    return result.lastInsertRowid;
+  },
+  end: (userId, guildId) => {
+    const session = db.prepare('SELECT * FROM game_sessions WHERE user_id=? AND guild_id=? AND end_time IS NULL').get(userId, guildId);
+    if (!session) return null;
+    const endTime = Date.now();
+    const duration = endTime - session.start_time;
+    db.prepare('UPDATE game_sessions SET end_time=?, duration=? WHERE id=?').run(endTime, duration, session.id);
+    return { ...session, end_time: endTime, duration };
+  },
+  getUserStats: (userId, guildId) => db.prepare('SELECT game_name, SUM(duration) as total_time FROM game_sessions WHERE user_id=? AND guild_id=? AND end_time IS NOT NULL GROUP BY game_name ORDER BY total_time DESC').all(userId, guildId),
+  getGameStats: (guildId, gameName) => db.prepare('SELECT COUNT(DISTINCT user_id) as players, SUM(duration) as total_time FROM game_sessions WHERE guild_id=? AND game_name=? AND end_time IS NOT NULL').get(guildId, gameName),
+  getTopGames: (guildId, limit = 10) => db.prepare('SELECT game_name, COUNT(DISTINCT user_id) as players, SUM(duration) as total_time FROM game_sessions WHERE guild_id=? AND end_time IS NOT NULL GROUP BY game_name ORDER BY total_time DESC LIMIT ?').all(guildId, limit),
+  getLeaderboard: (guildId, gameName, limit = 10) => db.prepare('SELECT user_id, SUM(duration) as total_time FROM game_sessions WHERE guild_id=? AND game_name=? AND end_time IS NOT NULL GROUP BY user_id ORDER BY total_time DESC LIMIT ?').all(guildId, gameName, limit),
+  getActive: (userId, guildId) => db.prepare('SELECT * FROM game_sessions WHERE user_id=? AND guild_id=? AND end_time IS NULL').get(userId, guildId),
+};
+
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements, gameSessions };
 
