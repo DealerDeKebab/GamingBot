@@ -1,8 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
-const { gameSessions } = require('../database/database');
+const { gameSessions, db } = require('../database/database');
 const cron = require('node-cron');
 
-let leaderboardMessage = null;
 let leaderboardChannelId = null;
 let previousGamesData = {}; // Pour tracker les tendances
 
@@ -65,6 +64,16 @@ function getProgressBar(value, max, length = 20) {
   return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
+// Sauvegarder/récupérer l'ID du message en base
+function saveLeaderboardMessageId(guildId, messageId) {
+  db.prepare('INSERT OR REPLACE INTO game_leaderboard (guild_id, message_id) VALUES (?, ?)').run(guildId, messageId);
+}
+
+function getLeaderboardMessageId(guildId) {
+  const result = db.prepare('SELECT message_id FROM game_leaderboard WHERE guild_id = ?').get(guildId);
+  return result?.message_id;
+}
+
 async function updateGameLeaderboard(client) {
   if (!leaderboardChannelId) {
     leaderboardChannelId = process.env.GAMESTATS_CHANNEL_ID;
@@ -77,23 +86,38 @@ async function updateGameLeaderboard(client) {
 
     const games = gameSessions.getTopGames(guild.id, 10);
 
-    if (games.length === 0) {
-      if (!leaderboardMessage) {
-        const embed = new EmbedBuilder()
-          .setColor('#5865F2')
-          .setTitle('🏆 TOP 10 JEUX LES PLUS JOUÉS')
-          .setDescription('*Aucune donnée disponible pour le moment...*\n\nCommencez à jouer pour apparaître ici !')
-          .setFooter({ text: 'Mise à jour automatique toutes les 10 min' })
-          .setTimestamp();
+    // Récupérer l'ID du message sauvegardé
+    const savedMessageId = getLeaderboardMessageId(guild.id);
+    let leaderboardMessage = null;
 
+    if (savedMessageId) {
+      try {
+        leaderboardMessage = await channel.messages.fetch(savedMessageId);
+      } catch (error) {
+        // Message introuvable, on va en créer un nouveau
+        leaderboardMessage = null;
+      }
+    }
+
+    if (games.length === 0) {
+      const embed = new EmbedBuilder()
+        .setColor('#5865F2')
+        .setTitle('🏆 TOP 10 JEUX LES PLUS JOUÉS')
+        .setDescription('*Aucune donnée disponible pour le moment...*\n\nCommencez à jouer pour apparaître ici !')
+        .setFooter({ text: 'Mise à jour automatique toutes les 10 min' })
+        .setTimestamp();
+
+      if (!leaderboardMessage) {
         leaderboardMessage = await channel.send({ embeds: [embed] });
+        saveLeaderboardMessageId(guild.id, leaderboardMessage.id);
+      } else {
+        await leaderboardMessage.edit({ embeds: [embed] });
       }
       return;
     }
 
     // Calculer le temps total
     const totalTime = games.reduce((sum, g) => sum + g.total_time, 0);
-    const totalPlayers = new Set(games.flatMap(g => Array(g.players).fill(null))).size;
 
     // Construire le podium (top 3)
     let podiumText = '';
@@ -135,12 +159,9 @@ async function updateGameLeaderboard(client) {
 
     if (!leaderboardMessage) {
       leaderboardMessage = await channel.send({ embeds: [embed] });
+      saveLeaderboardMessageId(guild.id, leaderboardMessage.id);
     } else {
-      try {
-        await leaderboardMessage.edit({ embeds: [embed] });
-      } catch (error) {
-        leaderboardMessage = await channel.send({ embeds: [embed] });
-      }
+      await leaderboardMessage.edit({ embeds: [embed] });
     }
 
     console.log('📊 Leaderboard jeux mis à jour (version stylée)');
