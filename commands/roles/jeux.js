@@ -10,6 +10,7 @@ const GAMES = {
   'League of Legends': { emoji: '⚔️', envKey: 'ROLE_LOL',      ranks: ['Iron','Bronze','Silver','Gold','Platinum','Emerald','Diamond','Master','Grandmaster','Challenger'], rankEnv: [] },
   'Fortnite':          { emoji: '🏗️', envKey: 'ROLE_FORTNITE', ranks: ['Bronze','Silver','Gold','Platinum','Diamond','Elite','Champion','Unreal'],                       rankEnv: [] },
   'Minecraft':         { emoji: '⛏️', envKey: 'ROLE_MINECRAFT', ranks: [], rankEnv: [] },
+  'Call of Duty':      { emoji: '🎖️', envKey: 'ROLE_COD',      ranks: [], rankEnv: [] },
 };
 
 module.exports = {
