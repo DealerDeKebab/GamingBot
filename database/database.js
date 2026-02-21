@@ -90,6 +90,10 @@ function initDatabase() {
       end_time INTEGER DEFAULT NULL,
       duration INTEGER DEFAULT NULL
     );
+    CREATE TABLE IF NOT EXISTS game_leaderboard (
+      guild_id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS economy (
       user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       wallet INTEGER DEFAULT 0, bank INTEGER DEFAULT 0,
