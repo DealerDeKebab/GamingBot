@@ -24,9 +24,14 @@ module.exports = {
         '🔫 CS2\n' +
         '🎯 Valorant\n' +
         '⚔️ League of Legends\n' +
-        '🏗️ Fortnite\n' +
+        '🏝️ Fortnite\n' +
         '⛏️ Minecraft\n' +
-        '🎖️ Call of Duty\n\n' +
+        '🎖️ Call of Duty\n' +
+        '💥 Battlefield\n' +
+        '⚒️ Rust\n' +
+        '🧟 DayZ\n' +
+        '🐉 World of Warcraft\n' +
+        '🎯 Rainbow Six Siege\n\n' +
         '*Tes rôles seront mis à jour automatiquement.*'
       )
       .setFooter({ text: 'Tu peux modifier tes choix à tout moment' })
