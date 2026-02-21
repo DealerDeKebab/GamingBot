@@ -4,10 +4,65 @@ const cron = require('node-cron');
 
 let leaderboardMessage = null;
 let leaderboardChannelId = null;
+let previousGamesData = {}; // Pour tracker les tendances
+
+// Emojis de jeux populaires
+const GAME_EMOJIS = {
+  'counter-strike 2': '🎯',
+  'cs2': '🎯',
+  'counter-strike': '🎯',
+  'valorant': '⚔️',
+  'rocket league': '🚗',
+  'league of legends': '🧙',
+  'fortnite': '🏝️',
+  'minecraft': '⛏️',
+  'apex legends': '🎮',
+  'call of duty': '🔫',
+  'overwatch': '🎯',
+  'dota 2': '⚡',
+  'among us': '🚀',
+  'gta v': '🚓',
+  'rust': '⚒️',
+  'terraria': '⛏️',
+  'stardew valley': '🌾',
+  'the finals': '💥',
+  'rainbow six siege': '🎯',
+  'fifa': '⚽',
+  'fc': '⚽',
+};
+
+function getGameEmoji(gameName) {
+  const name = gameName.toLowerCase();
+  for (const [key, emoji] of Object.entries(GAME_EMOJIS)) {
+    if (name.includes(key)) return emoji;
+  }
+  return '🎮'; // Emoji par défaut
+}
 
 function formatDuration(ms) {
   const hours = Math.floor(ms / 3600000);
-  return `${hours}h`;
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  if (hours === 0) return `${minutes}min`;
+  return minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
+}
+
+function getTrend(gameName, currentTime, guildId) {
+  const key = `${guildId}_${gameName}`;
+  const previous = previousGamesData[key] || 0;
+  const diff = currentTime - previous;
+  
+  previousGamesData[key] = currentTime;
+  
+  if (diff > 3600000) return `↗️ +${formatDuration(diff)}`;
+  if (diff < -3600000) return `↘️ ${formatDuration(Math.abs(diff))}`;
+  return ''; // Pas de changement significatif
+}
+
+function getProgressBar(value, max, length = 20) {
+  const percentage = Math.min((value / max) * 100, 100);
+  const filled = Math.floor((percentage / 100) * length);
+  const empty = length - filled;
+  return '█'.repeat(filled) + '░'.repeat(empty);
 }
 
 async function updateGameLeaderboard(client) {
@@ -23,7 +78,6 @@ async function updateGameLeaderboard(client) {
     const games = gameSessions.getTopGames(guild.id, 10);
 
     if (games.length === 0) {
-      // Pas encore de données
       if (!leaderboardMessage) {
         const embed = new EmbedBuilder()
           .setColor('#5865F2')
@@ -37,43 +91,65 @@ async function updateGameLeaderboard(client) {
       return;
     }
 
+    // Calculer le temps total
+    const totalTime = games.reduce((sum, g) => sum + g.total_time, 0);
+    const totalPlayers = new Set(games.flatMap(g => Array(g.players).fill(null))).size;
+
+    // Construire le podium (top 3)
+    let podiumText = '';
+    const medals = ['🥇', '🥈', '🥉'];
+    
+    for (let i = 0; i < Math.min(3, games.length); i++) {
+      const game = games[i];
+      const emoji = getGameEmoji(game.game_name);
+      const trend = getTrend(game.game_name, game.total_time, guild.id);
+      const percentage = ((game.total_time / totalTime) * 100).toFixed(0);
+      const progressBar = getProgressBar(game.total_time, totalTime);
+      
+      podiumText += `${medals[i]} ${emoji} **${game.game_name}** — ${formatDuration(game.total_time)} ${trend}\n`;
+      podiumText += `${progressBar} ${percentage}%\n`;
+      podiumText += `👥 ${game.players} joueur${game.players > 1 ? 's' : ''}\n\n`;
+    }
+
+    // Construire le classement (4-10)
+    let rankingText = '';
+    const rankEmojis = ['4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+    
+    for (let i = 3; i < games.length; i++) {
+      const game = games[i];
+      const emoji = getGameEmoji(game.game_name);
+      rankingText += `${rankEmojis[i - 3]} ${emoji} **${game.game_name}** — ${formatDuration(game.total_time)} • 👥 ${game.players}\n`;
+    }
+
+    // Construire l'embed
     const embed = new EmbedBuilder()
-      .setColor('#5865F2')
+      .setColor('#FFD700')
       .setTitle('🏆 TOP 10 JEUX LES PLUS JOUÉS')
       .setDescription(
-        games.map((g, i) => {
-          const emojis = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-          const emoji = emojis[i] || `${i + 1}.`;
-          return `${emoji} **${g.game_name}**\n└ ${formatDuration(g.total_time)} • ${g.players} joueur${g.players > 1 ? 's' : ''}`;
-        }).join('\n\n')
+        `━━━━━━━ **PODIUM** ━━━━━━━\n\n${podiumText}` +
+        (rankingText ? `━━━━━ **CLASSEMENT** ━━━━━\n\n${rankingText}\n` : '') +
+        `━━━━━━━━━━━━━━━━━━━━━\n📊 Temps total : **${formatDuration(totalTime)}**\n⏱️ Mis à jour <t:${Math.floor(Date.now() / 1000)}:R>`
       )
-      .setFooter({ text: 'Mise à jour automatique toutes les 10 min' })
+      .setFooter({ text: '🔄 Prochaine MAJ dans 10 min' })
       .setTimestamp();
 
     if (!leaderboardMessage) {
-      // Créer le message initial
       leaderboardMessage = await channel.send({ embeds: [embed] });
     } else {
-      // Mettre à jour le message existant
       try {
         await leaderboardMessage.edit({ embeds: [embed] });
       } catch (error) {
-        // Si le message n'existe plus, en créer un nouveau
         leaderboardMessage = await channel.send({ embeds: [embed] });
       }
     }
 
-    console.log('📊 Leaderboard jeux mis à jour');
+    console.log('📊 Leaderboard jeux mis à jour (version stylée)');
   }
 }
 
 function startGameLeaderboardUpdater(client) {
-  // Mise à jour toutes les 10 minutes
   cron.schedule('*/10 * * * *', () => updateGameLeaderboard(client));
-  
-  // Première mise à jour au démarrage (après 30 secondes)
   setTimeout(() => updateGameLeaderboard(client), 30000);
-  
   console.log('📊 Auto-update leaderboard jeux activé (toutes les 10 min)');
 }
 
