@@ -43,7 +43,7 @@ class MusicManager {
     const node = this.shoukaku.nodes.get('main');
     
     if (!player) {
-      player = await node.joinChannel({
+      player = await node.joinVoiceChannel({
         guildId: interaction.guildId,
         channelId: voiceChannel.id,
         shardId: interaction.guild.shardId,
