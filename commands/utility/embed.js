@@ -11,6 +11,7 @@ module.exports = {
     .addStringOption(o => o.setName('image').setDescription('URL de l\'image').setRequired(false))
     .addStringOption(o => o.setName('miniature').setDescription('URL de la miniature').setRequired(false))
     .addStringOption(o => o.setName('footer').setDescription('Texte du footer').setRequired(false))
+    .addBooleanOption(o => o.setName('everyone').setDescription('Ping @everyone ?').setRequired(false))
     .addChannelOption(o => o.setName('salon').setDescription('Salon où envoyer (sinon ici)').setRequired(false)),
 
   async execute(interaction) {
@@ -20,6 +21,7 @@ module.exports = {
     const image = interaction.options.getString('image');
     const miniature = interaction.options.getString('miniature');
     const footer = interaction.options.getString('footer');
+    const everyone = interaction.options.getBoolean('everyone') || false;
     const salon = interaction.options.getChannel('salon') || interaction.channel;
 
     // Créer l'embed
@@ -35,7 +37,12 @@ module.exports = {
 
     // Envoyer l'embed
     try {
-      await salon.send({ embeds: [embed] });
+      const messageOptions = { embeds: [embed] };
+      if (everyone) {
+        messageOptions.content = '@everyone';
+      }
+      
+      await salon.send(messageOptions);
       return interaction.reply({ content: `✅ Embed envoyé dans ${salon} !`, ephemeral: true });
     } catch (error) {
       console.error('Erreur envoi embed:', error);
