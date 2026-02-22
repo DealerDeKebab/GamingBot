@@ -16,8 +16,8 @@ function calculateGlobalScore(userId, guildId) {
   const achScore = userAchievements.length * 100;
   
   // Temps de jeu (10%)
-  const sessions = gameSessions.getUserSessions(userId, guildId);
-  const totalGameTime = sessions.reduce((sum, s) => sum + (s.end_time ? (s.end_time - s.start_time) : 0), 0);
+  const sessions = gameSessions.getUserStats(userId, guildId);
+  const totalGameTime = sessions.reduce((sum, s) => sum + (s.total_time || 0), 0);
   const gameScore = totalGameTime / (1000 * 60 * 60); // Heures → points
   
   // Richesse (5%)
