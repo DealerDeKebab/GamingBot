@@ -106,19 +106,67 @@ module.exports = {
       else if (rep.points > 0) repBadge = '🆕 Nouveau';
       else if (rep.points < 0) repBadge = '⚠️ Suspect';
 
+      // Stats gaming avancées
+      const gameStats = gameSessions.getUserStats(target.id, interaction.guildId);
+      const totalGameTime = gameStats.reduce((sum, g) => sum + (g.total_time || 0), 0);
+      const totalHours = Math.round(totalGameTime / (1000 * 60 * 60) * 10) / 10;
+      const top3Games = gameStats.slice(0, 3).map(g => {
+        const hours = Math.round(g.total_time / (1000 * 60 * 60) * 10) / 10;
+        return `${g.game_name} (${hours}h)`;
+      }).join(' • ') || 'Aucun';
+
+      // Historique réputation
+      const repHistory = reputation.getHistory(target.id, interaction.guildId, 3);
+      let repHistoryText = '';
+      for (const entry of repHistory) {
+        const fromUser = await interaction.guild.members.fetch(entry.from_user_id).catch(() => null);
+        const sign = entry.points > 0 ? '+' : '';
+        repHistoryText += `${sign}${entry.points} par **${fromUser?.user.username || 'Inconnu'}** • *${entry.reason}*\n`;
+      }
+      if (!repHistoryText) repHistoryText = 'Aucun historique';
+
+      // Progression niveau
+      const currentLevel = xpData?.level || 0;
+      const currentXP = xpData?.xp || 0;
+      const xpForNext = (currentLevel + 1) * 100;
+      const progress = Math.min(Math.round((currentXP / xpForNext) * 100), 100);
+      const barLength = 20;
+      const filledLength = Math.round((progress / 100) * barLength);
+      const progressBar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength);
+      const progressText = `${progressBar} ${progress}%\n${currentXP} / ${xpForNext} XP`;
+
+      // Score global du classement
+      const calculateGlobalScore = (userId, guildId) => {
+        const xpData = xp.getUser(userId, guildId);
+        const xpScore = xpData ? (xpData.level * 100 + xpData.xp / 10) : 0;
+        const rep = reputation.get(userId, guildId);
+        const repScore = Math.max(0, rep.points * 50);
+        const userAchievements = achievements.getUser(userId, guildId);
+        const achScore = userAchievements.length * 100;
+        const sessions = gameSessions.getUserStats(userId, guildId);
+        const totalGameTime = sessions.reduce((sum, s) => sum + (s.total_time || 0), 0);
+        const gameScore = totalGameTime / (1000 * 60 * 60);
+        const ecoData = economy.get(userId, guildId);
+        const wealthScore = ecoData ? (ecoData.wallet + ecoData.bank) / 100 : 0;
+        return Math.round((xpScore * 0.40) + (repScore * 0.25) + (achScore * 0.20) + (gameScore * 0.10) + (wealthScore * 0.05));
+      };
+      const globalScore = calculateGlobalScore(target.id, interaction.guildId);
+
       const embed = new EmbedBuilder()
         .setColor(prof.banner_color || '#5865F2')
         .setTitle(`🎮 ${target.username}`)
         .setThumbnail(target.displayAvatarURL({ dynamic: true, size: 256 }))
-        .setDescription(`*${prof.bio}*`)
+        .setDescription(`*${prof.bio}*\n\n🏆 **Score Global :** ${globalScore.toLocaleString()} pts`)
         .addFields(
           { name: '🏅 Badge',       value: badge,                                                    inline: true },
           { name: '⭐ Niveau',       value: xpData ? `${xpData.level}` : '0',                        inline: true },
           { name: '🏆 Rang',         value: rank ? `#${rank}` : 'Non classé',                        inline: true },
-          { name: '✨ XP Total',     value: xpData ? `${xpData.xp} XP` : '0 XP',                   inline: true },
+          { name: '📈 Progression', value: progressText,                                            inline: false },
           { name: '💬 Messages',     value: xpData ? `${xpData.messages}` : '0',                    inline: true },
           { name: '🎂 Anniversaire', value: bday ? `${bday.day} ${MONTHS[bday.month-1]}` : 'Non défini', inline: true },
-          { name: '💌 Réputation',   value: `${rep.points} pts • ${repBadge}`,                      inline: true }
+          { name: '💌 Réputation',   value: `${rep.points} pts • ${repBadge}`,                      inline: true },
+          { name: '🎮 Gaming',       value: `${totalHours}h jouées\n${top3Games}`,                  inline: false },
+          { name: '💌 Derniers +rep', value: repHistoryText,                                        inline: false }
         );
 
       if (pseudos) embed.addFields({ name: '🎮 Mes pseudos', value: pseudos });
