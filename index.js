@@ -40,7 +40,7 @@ client.once('ready', () => {
   startServerStatsUpdater(client);
 
   // ── Tâches planifiées ──────────────────────────────────────
-  const { checkBirthdays }  = require('./utils/birthdayChecker');
+  const { startBirthdayChecker }  = require('./utils/birthdayChecker');
   const { checkGiveaways }  = require('./utils/giveawayChecker');
   const { checkTwitch }     = require('./utils/twitchChecker');
   const { checkFreeGames }  = require('./utils/freeGamesChecker');
