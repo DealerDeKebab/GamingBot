@@ -66,6 +66,28 @@ function initDatabase() {
       end_time INTEGER NOT NULL, creator_id TEXT NOT NULL,
       status TEXT DEFAULT 'active', winner_option TEXT DEFAULT NULL
     );
+    CREATE TABLE IF NOT EXISTS jackpot_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      message_id TEXT,
+      channel_id TEXT NOT NULL,
+      initial_pot INTEGER NOT NULL,
+      current_pot INTEGER NOT NULL,
+      entry_cost INTEGER DEFAULT 1000,
+      end_time INTEGER NOT NULL,
+      participants TEXT DEFAULT '[]',
+      winner_id TEXT,
+      status TEXT DEFAULT 'active',
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS jackpot_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      winner_id TEXT NOT NULL,
+      pot_amount INTEGER NOT NULL,
+      participants_count INTEGER NOT NULL,
+      timestamp INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS temp_voice (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       channel_id TEXT UNIQUE NOT NULL,
@@ -395,5 +417,52 @@ const gameSessions = {
   getActive: (userId, guildId) => db.prepare('SELECT * FROM game_sessions WHERE user_id=? AND guild_id=? AND end_time IS NULL').get(userId, guildId),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements, reputation, gameSessions };
+const jackpot = {
+  create: (guildId, channelId, initialPot, entryCost, endTime) => {
+    const result = db.prepare('INSERT INTO jackpot_events (guild_id, channel_id, initial_pot, current_pot, entry_cost, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(guildId, channelId, initialPot, initialPot, entryCost, endTime, Date.now());
+    return result.lastInsertRowid;
+  },
+  
+  get: (id) => db.prepare('SELECT * FROM jackpot_events WHERE id=?').get(id),
+  
+  getActive: (guildId) => db.prepare('SELECT * FROM jackpot_events WHERE guild_id=? AND status=?').get(guildId, 'active'),
+  
+  setMessage: (id, messageId) => db.prepare('UPDATE jackpot_events SET message_id=? WHERE id=?').run(messageId, id),
+  
+  addParticipant: (id, userId) => {
+    const event = db.prepare('SELECT * FROM jackpot_events WHERE id=?').get(id);
+    if (!event) return false;
+    
+    const participants = JSON.parse(event.participants);
+    if (participants.includes(userId)) return false; // Déjà inscrit
+    
+    participants.push(userId);
+    db.prepare('UPDATE jackpot_events SET participants=?, current_pot=current_pot+? WHERE id=?').run(JSON.stringify(participants), event.entry_cost, id);
+    return true;
+  },
+  
+  getParticipants: (id) => {
+    const event = db.prepare('SELECT participants FROM jackpot_events WHERE id=?').get(id);
+    return event ? JSON.parse(event.participants) : [];
+  },
+  
+  finish: (id, winnerId) => {
+    const event = db.prepare('SELECT * FROM jackpot_events WHERE id=?').get(id);
+    if (!event) return null;
+    
+    db.prepare('UPDATE jackpot_events SET status=?, winner_id=? WHERE id=?').run('finished', winnerId, id);
+    
+    // Ajouter à l'historique
+    const participants = JSON.parse(event.participants);
+    db.prepare('INSERT INTO jackpot_history (guild_id, winner_id, pot_amount, participants_count, timestamp) VALUES (?, ?, ?, ?, ?)').run(event.guild_id, winnerId, event.current_pot, participants.length, Date.now());
+    
+    return event;
+  },
+  
+  cancel: (id) => db.prepare('UPDATE jackpot_events SET status=? WHERE id=?').run('cancelled', id),
+  
+  getHistory: (guildId, limit = 10) => db.prepare('SELECT * FROM jackpot_history WHERE guild_id=? ORDER BY timestamp DESC LIMIT ?').all(guildId, limit),
+};
+
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements, reputation, gameSessions, jackpot };
 
