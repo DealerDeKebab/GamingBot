@@ -5,6 +5,7 @@ const { loadCommands } = require('./handlers/commandHandler');
 const { loadEvents }   = require('./handlers/eventHandler');
 const { startServerStatsUpdater } = require('./utils/serverStatsUpdater');
 const { startBirthdayChecker } = require('./utils/birthdayChecker');
+const { startShopRoleChecker } = require('./utils/shopRoleChecker');
 const cron = require('node-cron');
 
 const client = new Client({
