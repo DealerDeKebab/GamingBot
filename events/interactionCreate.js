@@ -23,7 +23,10 @@ module.exports = {
     // ── Boutons ─────────────────────────────────────────────
     if (interaction.isButton()) {
       try {
-        if (interaction.customId.startsWith('bet_win_') || interaction.customId.startsWith('bet_cancel_')) {
+        if (interaction.customId.startsWith('hangman_')) {
+          const penduCmd = client.commands.get('pendu');
+          if (penduCmd) await penduCmd.handleButton(interaction);
+        } else if (interaction.customId.startsWith('bet_win_') || interaction.customId.startsWith('bet_cancel_')) {
           await handleBettingAdmin(interaction, client);
         } else if (interaction.customId === 'accept_rules') {
           await handleAcceptRules(interaction, client);
