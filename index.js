@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js'
 const { initDatabase } = require('./database/database');
 const { loadCommands } = require('./handlers/commandHandler');
 const { loadEvents }   = require('./handlers/eventHandler');
+const { startServerStatsUpdater } = require('./utils/serverStatsUpdater');
 const cron = require('node-cron');
 
 const client = new Client({
