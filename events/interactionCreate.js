@@ -75,7 +75,7 @@ async function handleJackpotJoin(interaction, client) {
   }
 
   // Retirer les coins
-  economy.removeWallet(interaction.user.id, interaction.guildId, event.entry_cost);
+  economy.addWallet(interaction.user.id, interaction.guildId, -event.entry_cost);
 
   // Ajouter au jackpot
   jackpot.addParticipant(eventId, interaction.user.id);
