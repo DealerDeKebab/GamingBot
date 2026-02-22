@@ -20,10 +20,6 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember, Partials.User],
 });
 
-// Music Manager avec Lavalink
-const MusicManager = require('./utils/MusicManager');
-client.musicManager = new MusicManager(client);
-
 client.commands    = new Collection();
 client.musicQueues = new Map();   // file musique par guild
 client.spamMap     = new Map();   // anti-spam : compteurs
