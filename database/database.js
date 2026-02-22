@@ -94,6 +94,10 @@ function initDatabase() {
       guild_id TEXT PRIMARY KEY,
       message_id TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS server_stats_message (
+      guild_id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS economy (
       user_id TEXT NOT NULL, guild_id TEXT NOT NULL,
       wallet INTEGER DEFAULT 0, bank INTEGER DEFAULT 0,
