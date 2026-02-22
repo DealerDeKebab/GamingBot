@@ -50,7 +50,6 @@ const { createDailyChallenge, checkExpiredChallenges } = require('./utils/challe
   const { checkInstagram }  = require('./utils/instagramChecker');
   const { startGameLeaderboardUpdater } = require('./utils/gameStatsUpdater');
 
-  cron.schedule('0 9 * * *',     () => checkBirthdays(client));   // tous les jours à 9h
   cron.schedule('*/30 * * * * *',() => checkGiveaways(client));   // toutes les 30s
   cron.schedule('*/5 * * * *',   () => checkTwitch(client));      // toutes les 5min
   cron.schedule('0 * * * *',     () => checkFreeGames(client));   // toutes les heures
