@@ -4,6 +4,7 @@ const { initDatabase } = require('./database/database');
 const { loadCommands } = require('./handlers/commandHandler');
 const { loadEvents }   = require('./handlers/eventHandler');
 const { startServerStatsUpdater } = require('./utils/serverStatsUpdater');
+const { startBirthdayChecker } = require('./utils/birthdayChecker');
 const cron = require('node-cron');
 
 const client = new Client({
@@ -41,7 +42,6 @@ client.once('ready', () => {
   startBirthdayChecker(client);
 
   // ── Tâches planifiées ──────────────────────────────────────
-  const { startBirthdayChecker }  = require('./utils/birthdayChecker');
   const { checkGiveaways }  = require('./utils/giveawayChecker');
   const { checkTwitch }     = require('./utils/twitchChecker');
   const { checkFreeGames }  = require('./utils/freeGamesChecker');
