@@ -38,6 +38,7 @@ client.once('ready', () => {
   console.log(`✅ Connecté en tant que ${client.user.tag}`);
   console.log(`📡 ${client.guilds.cache.size} serveur(s)`);
   startServerStatsUpdater(client);
+  startBirthdayChecker(client);
 
   // ── Tâches planifiées ──────────────────────────────────────
   const { startBirthdayChecker }  = require('./utils/birthdayChecker');
