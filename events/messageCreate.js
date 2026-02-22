@@ -1,5 +1,5 @@
 const { EmbedBuilder, ChannelType } = require('discord.js');
-const { xp, captcha, verify, economy } = require('../database/database');
+const { xp, captcha, verify, economy, shop } = require('../database/database');
 
 const SPAM_MAX      = 5;       // messages max par fenêtre
 const SPAM_WINDOW   = 5000;    // fenêtre en ms
@@ -27,8 +27,10 @@ module.exports = {
     await handleXP(message, client);
     // Coins gagnés en chattant (5-15 coins par message)
     economy.create(message.author.id, message.guild.id);
-    const coins = Math.floor(Math.random() * 11) + 5;
-    economy.addWallet(message.author.id, message.guild.id, coins);
+    const baseCoins = Math.floor(Math.random() * 11) + 5;
+    const coinsMultiplier = shop.getBoostMultiplier(message.author.id, message.guild.id, 'coins');
+    const finalCoins = Math.floor(baseCoins * coinsMultiplier);
+    economy.addWallet(message.author.id, message.guild.id, finalCoins);
   },
 };
 
@@ -148,8 +150,10 @@ async function handleXP(message, client) {
   const user = xp.getUser(message.author.id, message.guild.id);
   if (user && (Date.now() - user.last_xp) < XP_COOLDOWN) return;
 
-  const earned = Math.floor(Math.random() * (XP_MAX - XP_MIN + 1)) + XP_MIN;
-  xp.addXP(message.author.id, message.guild.id, earned);
+  const baseEarned = Math.floor(Math.random() * (XP_MAX - XP_MIN + 1)) + XP_MIN;
+  const xpMultiplier = shop.getBoostMultiplier(message.author.id, message.guild.id, 'xp');
+  const finalEarned = Math.floor(baseEarned * xpMultiplier);
+  xp.addXP(message.author.id, message.guild.id, finalEarned);
 
   // Tracker pour les défis
   const { updateChallengeProgress } = require('../utils/challengeManager');
