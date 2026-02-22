@@ -81,6 +81,28 @@ function initDatabase() {
       unlocked_at INTEGER NOT NULL,
       UNIQUE(user_id, guild_id, achievement_id)
     );
+    CREATE TABLE IF NOT EXISTS reputation (
+      user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      points INTEGER DEFAULT 0,
+      PRIMARY KEY (user_id, guild_id)
+    );
+    CREATE TABLE IF NOT EXISTS reputation_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_user_id TEXT NOT NULL,
+      to_user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      points INTEGER NOT NULL,
+      reason TEXT,
+      timestamp INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS reputation_cooldowns (
+      from_user_id TEXT NOT NULL,
+      to_user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      last_rep INTEGER NOT NULL,
+      PRIMARY KEY (from_user_id, to_user_id, guild_id)
+    );
     CREATE TABLE IF NOT EXISTS game_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id TEXT NOT NULL,
@@ -301,6 +323,56 @@ const achievements = {
   getAll: (guildId) => db.prepare('SELECT * FROM achievements WHERE guild_id=?').all(guildId),
 };
 
+const reputation = {
+  get: (userId, guildId) => {
+    let rep = db.prepare('SELECT * FROM reputation WHERE user_id=? AND guild_id=?').get(userId, guildId);
+    if (!rep) {
+      db.prepare('INSERT INTO reputation (user_id, guild_id, points) VALUES (?, ?, 0)').run(userId, guildId);
+      rep = { user_id: userId, guild_id: guildId, points: 0 };
+    }
+    return rep;
+  },
+  
+  add: (fromUserId, toUserId, guildId, points, reason) => {
+    // Vérifier le cooldown (24h entre chaque rep pour la même personne)
+    const cooldown = db.prepare('SELECT * FROM reputation_cooldowns WHERE from_user_id=? AND to_user_id=? AND guild_id=?').get(fromUserId, toUserId, guildId);
+    const now = Date.now();
+    const dayInMs = 24 * 60 * 60 * 1000;
+    
+    if (cooldown && (now - cooldown.last_rep) < dayInMs) {
+      const timeLeft = dayInMs - (now - cooldown.last_rep);
+      const hoursLeft = Math.ceil(timeLeft / (60 * 60 * 1000));
+      return { success: false, error: `Tu dois attendre encore ${hoursLeft}h avant de donner une réputation à cette personne.` };
+    }
+    
+    // Mettre à jour les points
+    const current = reputation.get(toUserId, guildId);
+    db.prepare('UPDATE reputation SET points=points+? WHERE user_id=? AND guild_id=?').run(points, toUserId, guildId);
+    
+    // Ajouter à l'historique
+    db.prepare('INSERT INTO reputation_history (from_user_id, to_user_id, guild_id, points, reason, timestamp) VALUES (?, ?, ?, ?, ?, ?)').run(fromUserId, toUserId, guildId, points, reason, now);
+    
+    // Mettre à jour le cooldown
+    db.prepare('INSERT OR REPLACE INTO reputation_cooldowns (from_user_id, to_user_id, guild_id, last_rep) VALUES (?, ?, ?, ?)').run(fromUserId, toUserId, guildId, now);
+    
+    return { success: true, newPoints: current.points + points };
+  },
+  
+  getHistory: (userId, guildId, limit = 10) => {
+    return db.prepare('SELECT * FROM reputation_history WHERE to_user_id=? AND guild_id=? ORDER BY timestamp DESC LIMIT ?').all(userId, guildId, limit);
+  },
+  
+  getLeaderboard: (guildId, limit = 10) => {
+    return db.prepare('SELECT * FROM reputation WHERE guild_id=? ORDER BY points DESC LIMIT ?').all(guildId, limit);
+  },
+  
+  getStats: (userId, guildId) => {
+    const given = db.prepare('SELECT COUNT(*) as count, SUM(points) as total FROM reputation_history WHERE from_user_id=? AND guild_id=?').get(userId, guildId);
+    const received = db.prepare('SELECT COUNT(*) as count, SUM(points) as total FROM reputation_history WHERE to_user_id=? AND guild_id=?').get(userId, guildId);
+    return { given: given || { count: 0, total: 0 }, received: received || { count: 0, total: 0 } };
+  }
+};
+
 const gameSessions = {
   start: (userId, guildId, gameName) => {
     const active = db.prepare('SELECT * FROM game_sessions WHERE user_id=? AND guild_id=? AND end_time IS NULL').get(userId, guildId);
@@ -323,5 +395,5 @@ const gameSessions = {
   getActive: (userId, guildId) => db.prepare('SELECT * FROM game_sessions WHERE user_id=? AND guild_id=? AND end_time IS NULL').get(userId, guildId),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements, gameSessions };
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements, reputation, gameSessions };
 
