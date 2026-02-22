@@ -163,10 +163,22 @@ async function handleXP(message, client) {
     const newLvl = updated.level + 1;
     xp.setLevel(message.author.id, message.guild.id, newLvl, updated.xp - xpNeeded);
 
+    // Vérifier les récompenses de niveau
+    const rewards = await checkLevelRewards(message, newLvl);
+
     const embed = new EmbedBuilder()
       .setColor('#FFD700')
       .setDescription(`🎉 GG **${message.author}** ! Tu passes au **niveau ${newLvl}** ! 🚀`)
       .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
+
+    // Ajouter les récompenses à l'embed si il y en a
+    if (rewards.length > 0) {
+      embed.addFields({
+        name: '🎁 Récompenses Débloquées !',
+        value: rewards.join('\n'),
+        inline: false
+      });
+    }
 
     // Envoyer dans le salon dédié si configuré, sinon dans le salon actuel
     const levelUpChannelId = process.env.LEVELUP_CHANNEL_ID;
@@ -182,4 +194,73 @@ async function handleXP(message, client) {
       }
     }
   }
+}
+
+// ── Récompenses de Niveau ────────────────────────────────────
+async function checkLevelRewards(message, level) {
+  const rewards = [];
+  const member = message.member;
+
+  // Niveau 5 → Rôle Gamer
+  if (level === 5 && process.env.LEVEL_ROLE_5) {
+    const role = message.guild.roles.cache.get(process.env.LEVEL_ROLE_5);
+    if (role && !member.roles.cache.has(role.id)) {
+      await member.roles.add(role);
+      rewards.push('🎮 Rôle **Gamer** débloqué !');
+    }
+  }
+
+  // Niveau 10 → Rôle Guerrier + 1000 coins
+  if (level === 10) {
+    if (process.env.LEVEL_ROLE_10) {
+      const role = message.guild.roles.cache.get(process.env.LEVEL_ROLE_10);
+      if (role && !member.roles.cache.has(role.id)) {
+        await member.roles.add(role);
+        rewards.push('⚔️ Rôle **Guerrier** débloqué !');
+      }
+    }
+    economy.addWallet(message.author.id, message.guild.id, 1000);
+    rewards.push('💰 **1000 coins** bonus !');
+  }
+
+  // Niveau 20 → Rôle Diamant + 2500 coins
+  if (level === 20) {
+    if (process.env.LEVEL_ROLE_20) {
+      const role = message.guild.roles.cache.get(process.env.LEVEL_ROLE_20);
+      if (role && !member.roles.cache.has(role.id)) {
+        await member.roles.add(role);
+        rewards.push('💎 Rôle **Diamant** débloqué !');
+      }
+    }
+    economy.addWallet(message.author.id, message.guild.id, 2500);
+    rewards.push('💰 **2500 coins** bonus !');
+  }
+
+  // Niveau 30 → Rôle Légende + 5000 coins
+  if (level === 30) {
+    if (process.env.LEVEL_ROLE_30) {
+      const role = message.guild.roles.cache.get(process.env.LEVEL_ROLE_30);
+      if (role && !member.roles.cache.has(role.id)) {
+        await member.roles.add(role);
+        rewards.push('👑 Rôle **Légende** débloqué !');
+      }
+    }
+    economy.addWallet(message.author.id, message.guild.id, 5000);
+    rewards.push('💰 **5000 coins** bonus !');
+  }
+
+  // Niveau 50 → Rôle Mythique + 10000 coins
+  if (level === 50) {
+    if (process.env.LEVEL_ROLE_50) {
+      const role = message.guild.roles.cache.get(process.env.LEVEL_ROLE_50);
+      if (role && !member.roles.cache.has(role.id)) {
+        await member.roles.add(role);
+        rewards.push('🌟 Rôle **Mythique** débloqué !');
+      }
+    }
+    economy.addWallet(message.author.id, message.guild.id, 10000);
+    rewards.push('💰 **10 000 coins** bonus !');
+  }
+
+  return rewards;
 }
