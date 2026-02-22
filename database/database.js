@@ -88,6 +88,43 @@ function initDatabase() {
       participants_count INTEGER NOT NULL,
       timestamp INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS shop_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      duration INTEGER,
+      role_id TEXT,
+      boost_type TEXT,
+      boost_value REAL,
+      stock INTEGER DEFAULT -1,
+      enabled INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS user_inventory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      item_id INTEGER NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      acquired_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS active_boosts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      boost_type TEXT NOT NULL,
+      boost_value REAL NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS active_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      guild_id TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS temp_voice (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       channel_id TEXT UNIQUE NOT NULL,
@@ -464,5 +501,105 @@ const jackpot = {
   getHistory: (guildId, limit = 10) => db.prepare('SELECT * FROM jackpot_history WHERE guild_id=? ORDER BY timestamp DESC LIMIT ?').all(guildId, limit),
 };
 
-module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements, reputation, gameSessions, jackpot };
+const shop = {
+  // Items
+  addItem: (guildId, name, description, category, price, options = {}) => {
+    const result = db.prepare('INSERT INTO shop_items (guild_id, name, description, category, price, duration, role_id, boost_type, boost_value, stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(
+      guildId, name, description, category, price,
+      options.duration || null,
+      options.role_id || null,
+      options.boost_type || null,
+      options.boost_value || null,
+      options.stock || -1
+    );
+    return result.lastInsertRowid;
+  },
+  
+  getItems: (guildId, category = null) => {
+    if (category) {
+      return db.prepare('SELECT * FROM shop_items WHERE guild_id=? AND category=? AND enabled=1 ORDER BY price ASC').all(guildId, category);
+    }
+    return db.prepare('SELECT * FROM shop_items WHERE guild_id=? AND enabled=1 ORDER BY category, price ASC').all(guildId);
+  },
+  
+  getItem: (id) => db.prepare('SELECT * FROM shop_items WHERE id=?').get(id),
+  
+  removeItem: (id) => db.prepare('UPDATE shop_items SET enabled=0 WHERE id=?').run(id),
+  
+  updateStock: (id, quantity) => db.prepare('UPDATE shop_items SET stock=stock+? WHERE id=?').run(quantity, id),
+  
+  // Inventory
+  addToInventory: (userId, guildId, itemId, quantity = 1) => {
+    const existing = db.prepare('SELECT * FROM user_inventory WHERE user_id=? AND guild_id=? AND item_id=?').get(userId, guildId, itemId);
+    if (existing) {
+      db.prepare('UPDATE user_inventory SET quantity=quantity+? WHERE id=?').run(quantity, existing.id);
+    } else {
+      db.prepare('INSERT INTO user_inventory (user_id, guild_id, item_id, quantity, acquired_at) VALUES (?, ?, ?, ?, ?)').run(userId, guildId, itemId, quantity, Date.now());
+    }
+  },
+  
+  getInventory: (userId, guildId) => {
+    return db.prepare(`
+      SELECT ui.*, si.name, si.description, si.category, si.duration, si.boost_type, si.boost_value, si.role_id
+      FROM user_inventory ui
+      JOIN shop_items si ON ui.item_id = si.id
+      WHERE ui.user_id=? AND ui.guild_id=?
+      ORDER BY ui.acquired_at DESC
+    `).all(userId, guildId);
+  },
+  
+  removeFromInventory: (userId, guildId, itemId, quantity = 1) => {
+    const item = db.prepare('SELECT * FROM user_inventory WHERE user_id=? AND guild_id=? AND item_id=?').get(userId, guildId, itemId);
+    if (!item) return false;
+    
+    if (item.quantity <= quantity) {
+      db.prepare('DELETE FROM user_inventory WHERE id=?').run(item.id);
+    } else {
+      db.prepare('UPDATE user_inventory SET quantity=quantity-? WHERE id=?').run(quantity, item.id);
+    }
+    return true;
+  },
+  
+  // Boosts
+  addBoost: (userId, guildId, boostType, boostValue, duration) => {
+    const expiresAt = Date.now() + duration;
+    db.prepare('INSERT INTO active_boosts (user_id, guild_id, boost_type, boost_value, expires_at) VALUES (?, ?, ?, ?, ?)').run(userId, guildId, boostType, boostValue, expiresAt);
+  },
+  
+  getActiveBoosts: (userId, guildId) => {
+    const now = Date.now();
+    // Nettoyer les boosts expirés
+    db.prepare('DELETE FROM active_boosts WHERE expires_at<?').run(now);
+    return db.prepare('SELECT * FROM active_boosts WHERE user_id=? AND guild_id=? AND expires_at>?').all(userId, guildId, now);
+  },
+  
+  getBoostMultiplier: (userId, guildId, boostType) => {
+    const boosts = shop.getActiveBoosts(userId, guildId);
+    const relevantBoosts = boosts.filter(b => b.boost_type === boostType);
+    if (!relevantBoosts.length) return 1;
+    
+    // Cumuler les multiplicateurs
+    return relevantBoosts.reduce((total, boost) => total + boost.boost_value, 1);
+  },
+  
+  // Rôles temporaires
+  addTempRole: (userId, guildId, roleId, duration) => {
+    const expiresAt = Date.now() + duration;
+    db.prepare('INSERT INTO active_roles (user_id, guild_id, role_id, expires_at) VALUES (?, ?, ?, ?)').run(userId, guildId, roleId, expiresAt);
+  },
+  
+  getExpiredRoles: () => {
+    const now = Date.now();
+    return db.prepare('SELECT * FROM active_roles WHERE expires_at<?').all(now);
+  },
+  
+  removeExpiredRole: (id) => db.prepare('DELETE FROM active_roles WHERE id=?').run(id),
+  
+  getActiveRoles: (userId, guildId) => {
+    const now = Date.now();
+    return db.prepare('SELECT * FROM active_roles WHERE user_id=? AND guild_id=? AND expires_at>?').all(userId, guildId, now);
+  },
+};
+
+module.exports = { db, initDatabase, xp, warn, birthday, giveaway, verify, captcha, postedGames, postedInstagram, profile, economy, betting, suggestions, challenges, tempVoice, achievements, reputation, gameSessions, jackpot, shop };
 
