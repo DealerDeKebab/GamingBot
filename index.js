@@ -33,8 +33,6 @@ async function main() {
   await loadCommands(client);
   await loadEvents(client);
   await client.login(process.env.DISCORD_TOKEN);
-}
-
 // Démarrer les systèmes automatiques après le login
   startBirthdayChecker(client);
 }
