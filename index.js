@@ -35,6 +35,10 @@ async function main() {
   await client.login(process.env.DISCORD_TOKEN);
 }
 
+// Démarrer les systèmes automatiques après le login
+  startBirthdayChecker(client);
+}
+
 client.once('ready', () => {
   console.log(`✅ Connecté en tant que ${client.user.tag}`);
   console.log(`📡 ${client.guilds.cache.size} serveur(s)`);
