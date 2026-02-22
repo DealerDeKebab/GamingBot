@@ -21,7 +21,6 @@ const client = new Client({
 });
 
 client.commands    = new Collection();
-client.musicQueues = new Map();   // file musique par guild
 client.spamMap     = new Map();   // anti-spam : compteurs
 client.joinTracker = new Map();   // anti-raid  : timestamps de joins
 client.raidActive  = new Map();   // anti-raid  : flag mode raid activé
